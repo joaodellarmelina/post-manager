@@ -1,0 +1,73 @@
+{
+  "name": "post-manager",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@expo/metro-runtime": "~57.0.14",
+    "@types/react": "~19.2.2",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "electron": "^44.1.0",
+    "electron-builder": "^26.15.3",
+    "expo": "~57.0.18",
+    "expo-status-bar": "~57.0.1",
+    "marked": "^18.0.11",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-web": "^0.21.2",
+    "typescript": "~6.0.3",
+    "wait-on": "^9.1.0"
+  },
+  "scripts": {
+    "start": "expo start --web",
+    "dev": "concurrently -k -n expo,electron -c cyan,magenta \"expo start --web --port 8081\" \"wait-on tcp:8081 && cross-env ELECTRON_DEV=1 electron electron/main.js\"",
+    "build:web": "expo export -p web --output-dir dist",
+    "electron": "electron electron/main.js",
+    "dist": "npm run build:web && electron-builder --mac",
+    "icon": "bash build/make-icon.sh"
+  },
+  "private": true,
+  "productName": "post manager",
+  "description": "Planejador de posts baseado em arquivos Markdown locais.",
+  "author": "joaodellarmelina",
+  "license": "MIT",
+  "build": {
+    "appId": "com.joaodellarmelina.postmanager",
+    "productName": "post manager",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "identity": null,
+      "artifactName": "post-manager-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "post manager"
+    },
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "afterPack": "build/afterPack.js"
+  }
+}

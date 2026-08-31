@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# expo / metro
+.expo/
+.metro-health-check*
+expo-env.d.ts
+
+# build output
+dist/
+release/
+
+# macOS
+.DS_Store
+
+# logs
+npm-debug.*
+
+# typescript
+*.tsbuildinfo
+
+# local env
+.env*.local
