@@ -127,7 +127,7 @@ export function Sidebar({
     >
       <ScrollView>
         <Row
-          label="todos os posts"
+          label="all posts"
           count={posts.length}
           active={!filters.status && !filters.type && !filters.tag}
           onPress={() => onChange({ status: null, type: null, tag: null })}
@@ -145,7 +145,7 @@ export function Sidebar({
           />
         ))}
 
-        <Section title="formato" />
+        <Section title="format" />
         {TYPES.map((ty) => (
           <Row
             key={ty}

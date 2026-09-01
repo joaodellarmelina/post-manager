@@ -1,11 +1,11 @@
 /** Small calendar helpers — enough to avoid pulling in a date library. */
 
 const MONTHS = [
-  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
 ];
 
-export const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+export const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -18,7 +18,7 @@ export function todayISO(): string {
 }
 
 export function monthLabel(year: number, month: number): string {
-  return `${MONTHS[month]} de ${year}`;
+  return `${MONTHS[month]} ${year}`;
 }
 
 /**
@@ -41,9 +41,9 @@ export function addMonths(year: number, month: number, delta: number) {
   return { year: d.getFullYear(), month: d.getMonth() };
 }
 
-/** "2026-09-15" -> "15 de setembro" */
+/** "2026-09-15" -> "september 15, 2026" */
 export function longDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
   if (!y || !m || !d) return iso;
-  return `${d} de ${MONTHS[m - 1]} de ${y}`;
+  return `${MONTHS[m - 1]} ${d}, ${y}`;
 }

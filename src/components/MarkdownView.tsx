@@ -249,7 +249,7 @@ export function MarkdownView({ source }: { source: string }) {
   if (!blocks) {
     return (
       <Text style={{ fontFamily: font.ui, fontSize: 13, color: t.textTertiary }}>
-        nada para visualizar ainda
+        nothing to preview yet
       </Text>
     );
   }

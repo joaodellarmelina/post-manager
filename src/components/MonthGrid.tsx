@@ -100,7 +100,7 @@ function DayCell({
       onHoverIn={() => setHover(true)}
       onHoverOut={() => setHover(false)}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      accessibilityLabel={`dia ${day}, ${posts.length} post(s). clique para criar.`}
+      accessibilityLabel={`day ${day}, ${posts.length} post(s). click to create.`}
       style={{
         flex: 1,
         minWidth: 0,
@@ -155,7 +155,7 @@ function DayCell({
         <Text
           style={{ fontFamily: font.ui, fontSize: 10.5, color: t.textSecondary, paddingLeft: 5 }}
         >
-          +{overflow} mais
+          +{overflow} more
         </Text>
       ) : null}
     </Pressable>

@@ -21,6 +21,7 @@ function emptyDraft(date: string): PostDraft {
     status: 'draft',
     type: 'feed',
     tags: [],
+    links: [],
     body: '',
   };
 }
@@ -181,8 +182,8 @@ export function CalendarScreen() {
           borderColor: t.separator,
         }}
       >
-        <IconButton label="☰" onPress={() => setShowSidebar((v) => !v)} accessibilityLabel="alternar filtros" />
-        <IconButton label="‹" onPress={() => shiftMonth(-1)} accessibilityLabel="mês anterior" />
+        <IconButton label="☰" onPress={() => setShowSidebar((v) => !v)} accessibilityLabel="toggle filters" />
+        <IconButton label="‹" onPress={() => shiftMonth(-1)} accessibilityLabel="previous month" />
         <Text
           style={{
             fontFamily: font.ui,
@@ -196,22 +197,22 @@ export function CalendarScreen() {
         >
           {monthLabel(year, month)}
         </Text>
-        <IconButton label="›" onPress={() => shiftMonth(1)} accessibilityLabel="próximo mês" />
-        <IconButton label="hoje" onPress={goToday} wide />
+        <IconButton label="›" onPress={() => shiftMonth(1)} accessibilityLabel="next month" />
+        <IconButton label="today" onPress={goToday} wide />
 
         <View style={{ flex: 1 }} />
 
         <View dataSet={NO_DRAG} style={{ width: 190 }}>
-          <Field inputRef={searchRef} value={query} onChangeText={setQuery} placeholder="buscar" />
+          <Field inputRef={searchRef} value={query} onChangeText={setQuery} placeholder="search" />
         </View>
-        <IconButton label="finder" onPress={() => vault.reveal()} wide accessibilityLabel="abrir pasta no finder" />
-        <PrimaryButton label="+ novo" onPress={() => createAt(todayISO())} />
+        <IconButton label="finder" onPress={() => vault.reveal()} wide accessibilityLabel="open folder in finder" />
+        <PrimaryButton label="+ new" onPress={() => createAt(todayISO())} />
       </View>
 
       {!hasBridge ? (
         <View style={{ padding: 8, backgroundColor: 'rgba(255,159,10,0.16)' }}>
           <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
-            rodando fora do electron — a leitura e gravação de arquivos está indisponível.
+            running outside electron — reading and writing files is unavailable.
           </Text>
         </View>
       ) : null}

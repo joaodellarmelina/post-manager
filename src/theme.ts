@@ -69,20 +69,20 @@ export const STATUS_COLOR: Record<string, string> = {
 };
 
 export const STATUS_LABEL: Record<string, string> = {
-  draft: 'rascunho',
-  ready: 'pronto',
-  published: 'publicado',
+  draft: 'draft',
+  ready: 'ready',
+  published: 'published',
 };
 
 export const TYPE_LABEL: Record<string, string> = {
   feed: 'feed',
   reels: 'reels',
-  carrossel: 'carrossel',
+  carousel: 'carousel',
   stories: 'stories',
 };
 
 export const STATUSES = ['draft', 'ready', 'published'] as const;
-export const TYPES = ['feed', 'reels', 'carrossel', 'stories'] as const;
+export const TYPES = ['feed', 'reels', 'carousel', 'stories'] as const;
 
 export const font = {
   ui: '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',

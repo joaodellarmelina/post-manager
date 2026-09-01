@@ -181,7 +181,7 @@ if (!gotLock) {
     try {
       await posts.seedIfEmpty();
     } catch (err) {
-      dialog.showErrorBox('Não foi possível acessar a pasta', String(err.message ?? err));
+      dialog.showErrorBox('Could not open the posts folder', String(err.message ?? err));
     }
 
     buildMenu(() => mainWindow, posts.VAULT_DIR);
