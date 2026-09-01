@@ -3,8 +3,9 @@ import { Platform, Text, TextInput, View } from 'react-native';
 import { hasBridge, vault, type Post, type PostDraft } from '../api';
 import { EditorPanel } from '../components/EditorPanel';
 import { MonthGrid } from '../components/MonthGrid';
+import { ShortcutsSheet } from '../components/ShortcutsSheet';
 import { Sidebar, type Filters } from '../components/Sidebar';
-import { Field, IconButton, PrimaryButton } from '../components/primitives';
+import { Field, GithubButton, IconButton, PrimaryButton } from '../components/primitives';
 import { addMonths, monthLabel, todayISO } from '../dates';
 import { usePosts } from '../hooks/usePosts';
 import { font, useTheme } from '../theme';
@@ -12,6 +13,8 @@ import { DRAG, NO_DRAG } from '../webStyles';
 
 /** Width reserved so the traffic lights never overlap toolbar content. */
 const TRAFFIC_LIGHTS = 78;
+
+const REPO_URL = 'https://github.com/joaodellarmelina/post-manager';
 
 function emptyDraft(date: string): PostDraft {
   return {
@@ -38,6 +41,7 @@ export function CalendarScreen() {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<Filters>({ status: null, type: null, tag: null });
   const [showSidebar, setShowSidebar] = useState(true);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const searchRef = useRef<TextInput>(null);
   const saveRef = useRef<(() => void) | null>(null);
@@ -95,14 +99,19 @@ export function CalendarScreen() {
     if (target?.filename) await remove(target.filename);
   }, [selected, remove]);
 
+  /** Closes the topmost dismissable surface; false when there was none. */
   const closePanel = useCallback(() => {
+    if (showShortcuts) {
+      setShowShortcuts(false);
+      return true;
+    }
     if (draftPost || selected) {
       setDraftPost(null);
       setSelected(null);
       return true;
     }
     return false;
-  }, [draftPost, selected]);
+  }, [showShortcuts, draftPost, selected]);
 
   const goToday = useCallback(() => {
     const d = new Date();
@@ -150,6 +159,9 @@ export function CalendarScreen() {
           break;
         case 'toggle-sidebar':
           setShowSidebar((v) => !v);
+          break;
+        case 'shortcuts':
+          setShowShortcuts((v) => !v);
           break;
       }
     });
@@ -206,7 +218,13 @@ export function CalendarScreen() {
           <Field inputRef={searchRef} value={query} onChangeText={setQuery} placeholder="search" />
         </View>
         <IconButton label="finder" onPress={() => vault.reveal()} wide accessibilityLabel="open folder in finder" />
+        <IconButton
+          label="⌘"
+          onPress={() => setShowShortcuts((v) => !v)}
+          accessibilityLabel="keyboard shortcuts"
+        />
         <PrimaryButton label="+ new" onPress={() => createAt(todayISO())} />
+        <GithubButton url={REPO_URL} />
       </View>
 
       {!hasBridge ? (
@@ -250,6 +268,8 @@ export function CalendarScreen() {
           />
         ) : null}
       </View>
+
+      {showShortcuts ? <ShortcutsSheet onClose={() => setShowShortcuts(false)} /> : null}
     </View>
   );
 }
