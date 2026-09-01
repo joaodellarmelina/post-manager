@@ -31,14 +31,17 @@ filename is `YYYY-MM-DD-slug.md`, generated from the date and title.
 
 ```yaml
 ---
-title: 'reels: lançamento da v2'
+title: 'reels: shipping v2'
 date: '2026-09-10'
 time: '18:00'
 status: draft        # draft | ready | published
-type: reels          # feed | reels | carrossel | stories
+type: reels          # feed | reels | carousel | stories
 tags: ['#dev', '#tech']
+links:               # reference links, as many as you want
+  - 'https://github.com/joaodellarmelina/post-manager'
+  - 'https://www.figma.com/file/v2-launch'
 ---
-a nova versão sai **hoje**. três coisas que mudaram e por quê.
+the new version is **out today**. three things changed and why.
 ```
 
 change the date or title and the file gets renamed for you — no duplicates.
@@ -52,6 +55,10 @@ break the yaml and the app flags that one post in red instead of falling over.
 
 captions support headings, bold, italic, strikethrough, code, links, lists and
 quotes, with a live preview and the 2,200 character instagram limit in view.
+
+each post also keeps a list of **reference links** — the article you're reacting
+to, the figma file, the doc you're citing. paste a url, hit enter, click it later
+to open it in your browser.
 
 <p align="center">
   <img src="docs/calendar-dark.png" width="800" alt="dark mode">
@@ -89,9 +96,19 @@ that's it -- you're up and running.
 npm run dist
 ```
 
-output lands in `release/`. builds are ad-hoc signed, so the first launch needs
-right click → open (or `xattr -dr com.apple.quarantine '/Applications/post manager.app'`).
-proper signing needs a paid apple developer account.
+output lands in `release/`.
+
+## first launch
+
+builds are ad-hoc signed, not notarised — that needs a paid apple developer
+account. macOS will refuse to open a downloaded copy until you clear the
+quarantine flag:
+
+```sh
+xattr -dr com.apple.quarantine '/Applications/post manager.app'
+```
+
+then open it normally. right click → open works too on some systems.
 
 if you wanna make an addition + pr, or just wanna remix the app for yourself,
 go for it. open a pr and i'll run it on my end and build a new version :)
@@ -119,6 +136,10 @@ a few things worth knowing if you're poking around:
   can write, and the renderer can reach `window.vault`, so injection is impossible by
   construction rather than sanitized after the fact.
 - **writes are atomic** (temp file + rename) and deletes go to the trash, never `unlink`.
+- **the app is ad-hoc signed in `afterPack`.** electron ships binaries with a
+  linker-signed signature whose identifier is literally `Electron`; adding files and
+  editing Info.plist invalidates it, and macOS reports an invalid signature as
+  "app is damaged and can't be opened".
 - **the icon needs an asset catalog**, not just an `.icns` — macOS 26 draws a legacy
   icns onto a system plate, which would nest the artwork's squircle inside a second one.
   regenerate it with `npm run icon` (needs xcode).

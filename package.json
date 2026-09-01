@@ -1,6 +1,6 @@
 {
   "name": "post-manager",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "index.ts",
   "dependencies": {
     "gray-matter": "^4.0.3"
@@ -28,7 +28,8 @@
     "build:web": "expo export -p web --output-dir dist",
     "electron": "electron electron/main.js",
     "dist": "npm run build:web && electron-builder --mac",
-    "icon": "bash build/make-icon.sh"
+    "icon": "bash build/make-icon.sh",
+    "dmg-bg": "python3 build/make-dmg-background.py"
   },
   "private": true,
   "productName": "post manager",
@@ -63,7 +64,27 @@
       "artifactName": "post-manager-${version}-${arch}.${ext}"
     },
     "dmg": {
-      "title": "post manager"
+      "title": "post manager",
+      "background": "build/dmg-background.png",
+      "window": {
+        "width": 660,
+        "height": 400
+      },
+      "iconSize": 128,
+      "iconTextSize": 13,
+      "contents": [
+        {
+          "x": 170,
+          "y": 196,
+          "type": "file"
+        },
+        {
+          "x": 490,
+          "y": 196,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     },
     "extraMetadata": {
       "main": "electron/main.js"
