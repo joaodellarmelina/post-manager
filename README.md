@@ -76,8 +76,15 @@ to open it in your browser.
 | `⌘←` `⌘→` | previous / next month |
 | `⌘F` | search |
 | `⌘1` | toggle filters |
+| `⌘/` | this shortcuts guide |
 | `⌘⌫` | move post to trash |
 | `⌘⇧O` | open the folder in finder |
+
+press `⌘/` or click the `⌘` button in the toolbar to see them in the app.
+
+<p align="center">
+  <img src="docs/shortcuts.png" width="800" alt="keyboard shortcuts guide">
+</p>
 
 ## run it yourself
 
