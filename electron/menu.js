@@ -70,6 +70,7 @@ function buildMenu(getWindow, vaultDir) {
         { label: 'Next Month', accelerator: 'CmdOrCtrl+Right', click: send('next-month') },
         { type: 'separator' },
         { label: 'Show Filters', accelerator: 'CmdOrCtrl+1', click: send('toggle-sidebar') },
+        { label: 'Keyboard Shortcuts', accelerator: 'CmdOrCtrl+/', click: send('shortcuts') },
         { type: 'separator' },
         { role: 'reload' },
         { role: 'toggleDevTools' },
