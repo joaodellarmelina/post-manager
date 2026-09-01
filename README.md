@@ -100,15 +100,26 @@ output lands in `release/`.
 
 ## first launch
 
-builds are ad-hoc signed, not notarised — that needs a paid apple developer
-account. macOS will refuse to open a downloaded copy until you clear the
-quarantine flag:
+builds are ad-hoc signed but **not notarised** — notarising needs a paid apple
+developer account. so macOS quarantines the download and shows either
+*"apple could not verify post manager is free of malware"* or, on older builds,
+*"post manager is damaged"*.
+
+drag the app to Applications first, then run:
 
 ```sh
 xattr -dr com.apple.quarantine '/Applications/post manager.app'
 ```
 
-then open it normally. right click → open works too on some systems.
+it opens normally after that. if you'd rather not use the terminal, try to open
+it once, then go to **system settings → privacy & security** and click
+**open anyway** next to the blocked app. (control-click → open no longer works
+for this on macOS 15 and later — apple moved the bypass into system settings.)
+
+none of this means the app is doing anything to your machine: it's the standard
+warning for any mac app distributed outside the app store without a paid
+developer account. you can read every line of what you're running in this repo,
+or build it yourself with `npm run dist`.
 
 if you wanna make an addition + pr, or just wanna remix the app for yourself,
 go for it. open a pr and i'll run it on my end and build a new version :)
