@@ -8,7 +8,10 @@ const matter = require('gray-matter');
 const VAULT_DIR = path.join(os.homedir(), 'Documents', 'post-manager');
 
 const STATUSES = ['draft', 'ready', 'published'];
-const TYPES = ['feed', 'reels', 'carrossel', 'stories'];
+const TYPES = ['feed', 'reels', 'carousel', 'stories'];
+
+// Files written before the app switched to English used the Portuguese value.
+const LEGACY_TYPES = { carrossel: 'carousel' };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -23,7 +26,7 @@ function slugify(input) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 60)
     .replace(/-+$/g, '');
-  return slug || 'sem-titulo';
+  return slug || 'untitled';
 }
 
 function todayISO() {
@@ -37,18 +40,41 @@ function todayISO() {
  * runs its filename through this before touching disk.
  */
 function resolveInVault(filename) {
-  if (typeof filename !== 'string' || !filename) throw new Error('Nome de arquivo inválido.');
+  if (typeof filename !== 'string' || !filename) throw new Error('invalid filename');
   if (filename.includes('/') || filename.includes('\\') || filename.includes('\0')) {
-    throw new Error('Nome de arquivo inválido.');
+    throw new Error('invalid filename');
   }
-  if (!filename.endsWith('.md')) throw new Error('Apenas arquivos .md são permitidos.');
+  if (!filename.endsWith('.md')) throw new Error('only .md files are allowed');
   const full = path.resolve(VAULT_DIR, filename);
-  if (path.dirname(full) !== path.resolve(VAULT_DIR)) throw new Error('Caminho fora do vault.');
+  if (path.dirname(full) !== path.resolve(VAULT_DIR)) throw new Error('path outside the vault');
   return full;
 }
 
 function oneOf(value, allowed, fallback) {
   return allowed.includes(value) ? value : fallback;
+}
+
+function normalizeType(value) {
+  const mapped = LEGACY_TYPES[value] ?? value;
+  return oneOf(mapped, TYPES, 'feed');
+}
+
+/** Reference links: a post can carry any number of them. */
+function normalizeLinks(value) {
+  const list = Array.isArray(value)
+    ? value
+    : typeof value === 'string' && value.trim()
+      ? [value]
+      : [];
+  const seen = new Set();
+  const out = [];
+  for (const item of list) {
+    const url = String(item ?? '').trim();
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    out.push(url);
+  }
+  return out;
 }
 
 /** Coerces whatever YAML the user wrote into the shape the UI expects. */
@@ -79,8 +105,9 @@ function normalize(filename, parsed) {
     date,
     time,
     status: oneOf(d.status, STATUSES, 'draft'),
-    type: oneOf(d.type, TYPES, 'feed'),
+    type: normalizeType(d.type),
     tags,
+    links: normalizeLinks(d.links),
     body: parsed.content.replace(/^\n+/, ''),
     error: null,
   };
@@ -93,7 +120,7 @@ function dateFromFilename(filename) {
 
 function titleFromFilename(filename) {
   const base = filename.replace(/\.md$/, '').replace(/^\d{4}-\d{2}-\d{2}-/, '');
-  return base.replace(/-/g, ' ') || 'sem título';
+  return base.replace(/-/g, ' ') || 'untitled';
 }
 
 async function ensureDir() {
@@ -115,8 +142,9 @@ async function readOne(filename) {
       status: 'draft',
       type: 'feed',
       tags: [],
+      links: [],
       body: raw,
-      error: `YAML inválido: ${err.message}`,
+      error: `invalid YAML: ${err.message}`,
     };
   }
 }
@@ -138,6 +166,7 @@ async function listPosts() {
         status: 'draft',
         type: 'feed',
         tags: [],
+        links: [],
         body: '',
         error: err.message,
       })),
@@ -176,8 +205,9 @@ function serialize(post) {
       date: post.date,
       time: post.time,
       status: oneOf(post.status, STATUSES, 'draft'),
-      type: oneOf(post.type, TYPES, 'feed'),
+      type: normalizeType(post.type),
       tags: Array.isArray(post.tags) ? post.tags : [],
+      links: normalizeLinks(post.links),
     },
     // flowLevel 1 keeps `tags: ['#tech', '#dev']` on one line, matching the
     // documented file format instead of a multi-line YAML block sequence.
@@ -223,16 +253,17 @@ async function seedIfEmpty() {
   const entries = await fs.readdir(VAULT_DIR);
   if (entries.some((n) => n.endsWith('.md'))) return;
   await savePost(null, {
-    title: 'bem-vindo ao post manager',
+    title: 'welcome to post manager',
     date: todayISO(),
     time: '18:00',
     status: 'draft',
     type: 'feed',
-    tags: ['#exemplo'],
+    tags: ['#example'],
+    links: ['https://github.com/joaodellarmelina/post-manager'],
     body:
-      'cada post é um arquivo markdown em ~/Documents/post-manager.\n\n' +
-      'edite aqui ou no seu editor favorito — o app acompanha os dois lados.\n\n' +
-      'cmd+n cria um post, cmd+s salva, cmd+w fecha este painel.',
+      'every post is a markdown file in ~/Documents/post-manager.\n\n' +
+      'edit it here or in your favourite editor — the app follows both sides.\n\n' +
+      '**cmd+n** creates a post, **cmd+s** saves, **cmd+w** closes this panel.',
   });
 }
 

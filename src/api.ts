@@ -1,5 +1,5 @@
 export type Status = 'draft' | 'ready' | 'published';
-export type PostType = 'feed' | 'reels' | 'carrossel' | 'stories';
+export type PostType = 'feed' | 'reels' | 'carousel' | 'stories';
 
 export interface Post {
   filename: string;
@@ -9,6 +9,8 @@ export interface Post {
   status: Status;
   type: PostType;
   tags: string[];
+  /** Reference links; a post can carry any number of them. */
+  links: string[];
   body: string;
   error: string | null;
 }
@@ -45,10 +47,10 @@ declare global {
 const missing: VaultBridge = {
   list: async () => [],
   read: async () => {
-    throw new Error('bridge indisponível');
+    throw new Error('bridge unavailable');
   },
   save: async () => {
-    throw new Error('bridge indisponível');
+    throw new Error('bridge unavailable');
   },
   remove: async () => false,
   reveal: async () => false,

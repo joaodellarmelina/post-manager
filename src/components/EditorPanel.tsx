@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import type { Post, PostDraft, PostType, Status } from '../api';
 import { longDate } from '../dates';
 import {
@@ -9,8 +9,8 @@ import { MarkdownView } from './MarkdownView';
 import { Field, IconButton, Label, Segmented } from './primitives';
 
 const CAPTION_LIMIT = 2200;
-const BODY_MODES = ['escrever', 'visualizar'] as const;
-const BODY_MODE_LABELS = { escrever: 'escrever', visualizar: 'visualizar' };
+const BODY_MODES = ['write', 'preview'] as const;
+const BODY_MODE_LABELS = { write: 'write', preview: 'preview' };
 const AUTOSAVE_MS = 800;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -46,7 +46,7 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) 
             <Pressable
               key={tag}
               onPress={() => onChange(tags.filter((x) => x !== tag))}
-              accessibilityLabel={`remover ${tag}`}
+              accessibilityLabel={`remove ${tag}`}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -73,13 +73,102 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) 
             setTimeout(commit, 0);
           } else setText(v);
         }}
-        placeholder="adicionar tag e pressionar enter"
+        placeholder="add a tag and press enter"
         onKeyPress={(e: any) => {
           if (e.nativeEvent?.key === 'Enter') {
             e.preventDefault?.();
             commit();
           } else if (e.nativeEvent?.key === 'Backspace' && !text && tags.length) {
             onChange(tags.slice(0, -1));
+          }
+        }}
+      />
+    </View>
+  );
+}
+
+/** Normalises what people actually paste: bare domains become https URLs. */
+function normalizeUrl(raw: string) {
+  const url = raw.trim();
+  if (!url) return '';
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url) || url.startsWith('mailto:')) return url;
+  return `https://${url}`;
+}
+
+function hostOf(url: string) {
+  try {
+    return new URL(url).host.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+function LinksField({ links, onChange }: { links: string[]; onChange: (l: string[]) => void }) {
+  const t = useTheme();
+  const [text, setText] = useState('');
+
+  const add = useCallback(() => {
+    const url = normalizeUrl(text);
+    if (!url) return;
+    if (!links.includes(url)) onChange([...links, url]);
+    setText('');
+  }, [text, links, onChange]);
+
+  return (
+    <View style={{ gap: 6 }}>
+      {links.map((url, i) => (
+        <View
+          key={`${url}-${i}`}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            paddingHorizontal: 8,
+            paddingVertical: 6,
+            borderRadius: radius.md - 2,
+            backgroundColor: t.field,
+            borderWidth: 1,
+            borderColor: t.separator,
+          }}
+        >
+          <Text
+            numberOfLines={1}
+            accessibilityRole="link"
+            onPress={() => Linking.openURL(url).catch(() => {})}
+            style={{
+              flex: 1,
+              fontFamily: font.ui,
+              fontSize: 12,
+              color: t.accentStrong,
+              textDecorationLine: 'underline',
+            }}
+          >
+            {hostOf(url)}
+            <Text style={{ color: t.textTertiary, textDecorationLine: 'none' }}>
+              {'  '}
+              {url.replace(/^https?:\/\/(www\.)?/, '').slice(hostOf(url).length) || ''}
+            </Text>
+          </Text>
+          <Pressable
+            onPress={() => onChange(links.filter((_, n) => n !== i))}
+            accessibilityLabel={`remove ${url}`}
+            hitSlop={6}
+          >
+            <Text style={{ fontFamily: font.ui, fontSize: 13, color: t.textTertiary }}>×</Text>
+          </Pressable>
+        </View>
+      ))}
+
+      <Field
+        value={text}
+        onChangeText={setText}
+        placeholder="paste a link and press enter"
+        onKeyPress={(e: any) => {
+          if (e.nativeEvent?.key === 'Enter') {
+            e.preventDefault?.();
+            add();
+          } else if (e.nativeEvent?.key === 'Backspace' && !text && links.length) {
+            onChange(links.slice(0, -1));
           }
         }}
       />
@@ -106,7 +195,7 @@ export function EditorPanel({
   const t = useTheme();
   const [draft, setDraft] = useState<PostDraft>(post);
   const [state, setState] = useState<SaveState>('idle');
-  const [bodyMode, setBodyMode] = useState<(typeof BODY_MODES)[number]>('escrever');
+  const [bodyMode, setBodyMode] = useState<(typeof BODY_MODES)[number]>('write');
   const [message, setMessage] = useState<string | null>(null);
 
   // `filename` changes under us when a save renames the file.
@@ -177,11 +266,11 @@ export function EditorPanel({
   const over = draft.body.length > CAPTION_LIMIT;
 
   const statusText =
-    state === 'saving' ? 'salvando…'
-    : state === 'saved' ? 'salvo'
-    : state === 'dirty' ? 'editando…'
-    : state === 'error' ? 'erro ao salvar'
-    : state === 'invalid' ? 'data ou hora inválida'
+    state === 'saving' ? 'saving…'
+    : state === 'saved' ? 'saved'
+    : state === 'dirty' ? 'editing…'
+    : state === 'error' ? 'save failed'
+    : state === 'invalid' ? 'invalid date or time'
     : '';
 
   return (
@@ -204,12 +293,12 @@ export function EditorPanel({
           borderColor: t.separator,
         }}
       >
-        <IconButton label="✕" onPress={onClose} accessibilityLabel="fechar painel" />
+        <IconButton label="✕" onPress={onClose} accessibilityLabel="close panel" />
         <Text
           numberOfLines={1}
           style={{ flex: 1, fontFamily: font.ui, fontSize: 12, color: t.textSecondary }}
         >
-          {filenameRef.current ?? 'novo post'}
+          {filenameRef.current ?? 'new post'}
         </Text>
         <Text
           style={{
@@ -220,7 +309,7 @@ export function EditorPanel({
         >
           {statusText}
         </Text>
-        <IconButton label="⋯" onPress={onReveal} accessibilityLabel="mostrar no finder" />
+        <IconButton label="⋯" onPress={onReveal} accessibilityLabel="reveal in finder" />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 14, gap: 14 }}>
@@ -246,27 +335,27 @@ export function EditorPanel({
         ) : null}
 
         <View>
-          <Label>título</Label>
+          <Label>title</Label>
           <Field
             value={draft.title}
             onChangeText={(v) => update({ title: v })}
-            placeholder="título da postagem"
+            placeholder="post title"
           />
         </View>
 
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <View style={{ flex: 2 }}>
-            <Label>data</Label>
+            <Label>date</Label>
             <Field
               value={draft.date}
               onChangeText={(v) => update({ date: v })}
-              placeholder="aaaa-mm-dd"
+              placeholder="yyyy-mm-dd"
               mono
               invalid={!isRealDate(draft.date)}
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Label>hora</Label>
+            <Label>time</Label>
             <Field
               value={draft.time}
               onChangeText={(v) => update({ time: v })}
@@ -284,7 +373,7 @@ export function EditorPanel({
             marginTop: -8,
           }}
         >
-          {isRealDate(draft.date) ? longDate(draft.date) : 'data inválida — use aaaa-mm-dd'}
+          {isRealDate(draft.date) ? longDate(draft.date) : 'invalid date — use yyyy-mm-dd'}
         </Text>
 
         <View>
@@ -299,7 +388,7 @@ export function EditorPanel({
         </View>
 
         <View>
-          <Label>formato</Label>
+          <Label>format</Label>
           <Segmented<PostType>
             options={TYPES}
             value={draft.type}
@@ -314,6 +403,11 @@ export function EditorPanel({
         </View>
 
         <View>
+          <Label>reference links</Label>
+          <LinksField links={draft.links} onChange={(links) => update({ links })} />
+        </View>
+
+        <View>
           <View
             style={{
               flexDirection: 'row',
@@ -322,7 +416,7 @@ export function EditorPanel({
               marginBottom: 6,
             }}
           >
-            <Label>legenda</Label>
+            <Label>caption</Label>
             <View style={{ width: 168 }}>
               <Segmented
                 options={BODY_MODES}
@@ -333,11 +427,11 @@ export function EditorPanel({
             </View>
           </View>
 
-          {bodyMode === 'escrever' ? (
+          {bodyMode === 'write' ? (
             <Field
               value={draft.body}
               onChangeText={(v) => update({ body: v })}
-              placeholder="escreva a legenda, copy ou roteiro em markdown…"
+              placeholder="write the caption, copy or script in markdown…"
               multiline
               mono
               style={{ minHeight: 260, textAlignVertical: 'top' } as any}
@@ -377,7 +471,7 @@ export function EditorPanel({
           style={{ alignSelf: 'flex-start', paddingVertical: 5 }}
         >
           <Text style={{ fontFamily: font.ui, fontSize: 12, color: '#FF453A' }}>
-            mover para o lixo
+            move to trash
           </Text>
         </Pressable>
       </ScrollView>
