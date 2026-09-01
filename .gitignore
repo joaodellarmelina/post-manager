@@ -21,3 +21,8 @@ npm-debug.*
 
 # local env
 .env*.local
+
+# local agent config
+.claude/
+AGENTS.md
+CLAUDE.md
