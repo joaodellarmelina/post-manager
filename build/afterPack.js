@@ -43,4 +43,24 @@ exports.default = async function afterPack(context) {
   set('CFBundleIconName', 'AppIcon');
 
   console.log('  • afterPack: installed asset-catalog app icon');
+
+  // Electron ships its binaries with a linker-signed ad-hoc signature whose
+  // identifier is literally "Electron". Adding our files and editing
+  // Info.plist invalidates it, and macOS reports an invalid signature as
+  // "app is damaged and can't be opened" once the download carries a
+  // quarantine flag. Re-sign the finished bundle ad-hoc so the signature
+  // actually matches its contents. (Ad-hoc is not notarised — Gatekeeper
+  // still asks the user to confirm — but the app is no longer "damaged".)
+  const appPath = path.join(context.appOutDir, `${appName}.app`);
+  try {
+    execFileSync('codesign', [
+      '--force', '--deep', '--sign', '-',
+      '--identifier', context.packager.appInfo.id,
+      appPath,
+    ], { stdio: 'pipe' });
+    execFileSync('codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'pipe' });
+    console.log('  • afterPack: ad-hoc signature applied and verified');
+  } catch (err) {
+    throw new Error(`ad-hoc signing failed: ${err.stderr?.toString() || err.message}`);
+  }
 };
