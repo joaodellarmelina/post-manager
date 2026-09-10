@@ -47,6 +47,19 @@ the new version is **out today**. three things changed and why.
 change the date or title and the file gets renamed for you — no duplicates.
 break the yaml and the app flags that one post in red instead of falling over.
 
+## two ways to look at the plan
+
+the calendar is for spotting gaps in a month. the list is for working through
+everything in order, across months — switch with the toggle in the toolbar or `⌘L`.
+
+<p align="center">
+  <img src="docs/list.png" width="800" alt="list view">
+</p>
+
+each row carries the status dot, date, time, title, how many reference links it
+has and its format. the filters and the search box apply to both views, and
+clicking a row opens the same editor.
+
 ## write in markdown, see it rendered
 
 <p align="center">
@@ -75,6 +88,7 @@ to open it in your browser.
 | `⌘T` | jump to today |
 | `⌘←` `⌘→` | previous / next month |
 | `⌘F` | search |
+| `⌘L` | switch calendar / list |
 | `⌘1` | toggle filters |
 | `⌘/` | this shortcuts guide |
 | `⌘⌫` | move post to trash |
