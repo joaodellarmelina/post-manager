@@ -3,9 +3,10 @@ import { Platform, Text, TextInput, View } from 'react-native';
 import { hasBridge, vault, type Post, type PostDraft } from '../api';
 import { EditorPanel } from '../components/EditorPanel';
 import { MonthGrid } from '../components/MonthGrid';
+import { PostList } from '../components/PostList';
 import { ShortcutsSheet } from '../components/ShortcutsSheet';
 import { Sidebar, type Filters } from '../components/Sidebar';
-import { Field, GithubButton, IconButton, PrimaryButton } from '../components/primitives';
+import { Field, GithubButton, IconButton, PrimaryButton, Segmented } from '../components/primitives';
 import { addMonths, monthLabel, todayISO } from '../dates';
 import { usePosts } from '../hooks/usePosts';
 import { font, useTheme } from '../theme';
@@ -15,6 +16,22 @@ import { DRAG, NO_DRAG } from '../webStyles';
 const TRAFFIC_LIGHTS = 78;
 
 const REPO_URL = 'https://github.com/joaodellarmelina/post-manager';
+
+const VIEWS = ['calendar', 'list'] as const;
+const VIEW_LABELS = { calendar: 'calendar', list: 'list' };
+type ViewMode = (typeof VIEWS)[number];
+
+const VIEW_KEY = 'post-manager.view';
+
+/** Remembering the last view is a per-machine convenience, not vault data. */
+function storedView(): ViewMode {
+  try {
+    const v = localStorage.getItem(VIEW_KEY);
+    return v === 'list' ? 'list' : 'calendar';
+  } catch {
+    return 'calendar';
+  }
+}
 
 function emptyDraft(date: string): PostDraft {
   return {
@@ -42,6 +59,20 @@ export function CalendarScreen() {
   const [filters, setFilters] = useState<Filters>({ status: null, type: null, tag: null });
   const [showSidebar, setShowSidebar] = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  // Bumped only when a different post is opened. The editor panel is keyed on
+  // this rather than on the filename, which changes when a save renames the
+  // file and would otherwise remount the panel mid-edit.
+  const [editorSession, setEditorSession] = useState(0);
+  const [view, setView] = useState<ViewMode>(storedView);
+
+  const changeView = useCallback((next: ViewMode) => {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // Private windows and cleared site data are fine; the view just resets.
+    }
+  }, []);
 
   const searchRef = useRef<TextInput>(null);
   const saveRef = useRef<(() => void) | null>(null);
@@ -74,11 +105,13 @@ export function CalendarScreen() {
   const openPost = useCallback((p: Post) => {
     setDraftPost(null);
     setSelected(p);
+    setEditorSession((n) => n + 1);
   }, []);
 
   const createAt = useCallback((iso: string) => {
     setSelected(null);
     setDraftPost({ filename: '', error: null, ...emptyDraft(iso) });
+    setEditorSession((n) => n + 1);
   }, []);
 
   const handleSave = useCallback(
@@ -163,9 +196,12 @@ export function CalendarScreen() {
         case 'shortcuts':
           setShowShortcuts((v) => !v);
           break;
+        case 'toggle-view':
+          changeView(view === 'calendar' ? 'list' : 'calendar');
+          break;
       }
     });
-  }, [createAt, closePanel, handleDelete, goToday, shiftMonth, selected]);
+  }, [createAt, closePanel, handleDelete, goToday, shiftMonth, selected, view, changeView]);
 
   // Esc closes the panel — the macOS idiom for a transient inspector.
   useEffect(() => {
@@ -195,22 +231,53 @@ export function CalendarScreen() {
         }}
       >
         <IconButton label="☰" onPress={() => setShowSidebar((v) => !v)} accessibilityLabel="toggle filters" />
-        <IconButton label="‹" onPress={() => shiftMonth(-1)} accessibilityLabel="previous month" />
-        <Text
-          style={{
-            fontFamily: font.ui,
-            fontSize: 14,
-            fontWeight: '600',
-            letterSpacing: -0.2,
-            color: t.text,
-            minWidth: 150,
-            textAlign: 'center',
-          }}
-        >
-          {monthLabel(year, month)}
-        </Text>
-        <IconButton label="›" onPress={() => shiftMonth(1)} accessibilityLabel="next month" />
-        <IconButton label="today" onPress={goToday} wide />
+
+        <View dataSet={NO_DRAG} style={{ width: 158 }}>
+          <Segmented<ViewMode>
+            options={VIEWS}
+            value={view}
+            onChange={changeView}
+            labels={VIEW_LABELS}
+          />
+        </View>
+
+        {view === 'calendar' ? (
+          <>
+            <IconButton label="‹" onPress={() => shiftMonth(-1)} accessibilityLabel="previous month" />
+            <Text
+              style={{
+                fontFamily: font.ui,
+                fontSize: 14,
+                fontWeight: '600',
+                letterSpacing: -0.2,
+                color: t.text,
+                minWidth: 150,
+                textAlign: 'center',
+              }}
+            >
+              {monthLabel(year, month)}
+            </Text>
+            <IconButton label="›" onPress={() => shiftMonth(1)} accessibilityLabel="next month" />
+            <IconButton label="today" onPress={goToday} wide />
+          </>
+        ) : (
+          <Text
+            style={{
+              fontFamily: font.ui,
+              fontSize: 14,
+              fontWeight: '600',
+              letterSpacing: -0.2,
+              color: t.text,
+              marginLeft: 4,
+            }}
+          >
+            all posts
+            <Text style={{ fontSize: 12, fontWeight: '400', color: t.textTertiary }}>
+              {'  '}
+              {filtered.length}
+            </Text>
+          </Text>
+        )}
 
         <View style={{ flex: 1 }} />
 
@@ -246,19 +313,27 @@ export function CalendarScreen() {
         {showSidebar ? <Sidebar posts={posts} filters={filters} onChange={setFilters} /> : null}
 
         <View style={{ flex: 1 }}>
-          <MonthGrid
-            year={year}
-            month={month}
-            posts={filtered}
-            selectedFile={selected?.filename ?? null}
-            onSelectPost={openPost}
-            onCreate={createAt}
-          />
+          {view === 'calendar' ? (
+            <MonthGrid
+              year={year}
+              month={month}
+              posts={filtered}
+              selectedFile={selected?.filename ?? null}
+              onSelectPost={openPost}
+              onCreate={createAt}
+            />
+          ) : (
+            <PostList
+              posts={filtered}
+              selectedFile={selected?.filename ?? null}
+              onSelectPost={openPost}
+            />
+          )}
         </View>
 
         {openEditor ? (
           <EditorPanel
-            key={openEditor.filename || 'new'}
+            key={editorSession}
             post={openEditor}
             onSave={handleSave}
             onDelete={handleDelete}

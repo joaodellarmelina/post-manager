@@ -19,7 +19,7 @@ export type PostDraft = Omit<Post, 'filename' | 'error'>;
 
 type MenuAction =
   | 'new' | 'save' | 'close-panel' | 'today' | 'delete'
-  | 'search' | 'prev-month' | 'next-month' | 'toggle-sidebar' | 'shortcuts';
+  | 'search' | 'prev-month' | 'next-month' | 'toggle-sidebar' | 'shortcuts' | 'toggle-view';
 
 interface VaultBridge {
   list(): Promise<Post[]>;

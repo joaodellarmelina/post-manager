@@ -69,6 +69,7 @@ function buildMenu(getWindow, vaultDir) {
         { label: 'Previous Month', accelerator: 'CmdOrCtrl+Left', click: send('prev-month') },
         { label: 'Next Month', accelerator: 'CmdOrCtrl+Right', click: send('next-month') },
         { type: 'separator' },
+        { label: 'Switch Calendar / List', accelerator: 'CmdOrCtrl+L', click: send('toggle-view') },
         { label: 'Show Filters', accelerator: 'CmdOrCtrl+1', click: send('toggle-sidebar') },
         { label: 'Keyboard Shortcuts', accelerator: 'CmdOrCtrl+/', click: send('shortcuts') },
         { type: 'separator' },
