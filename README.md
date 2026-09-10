@@ -67,7 +67,11 @@ clicking a row opens the same editor.
 </p>
 
 captions support headings, bold, italic, strikethrough, code, links, lists and
-quotes, with a live preview and the 2,200 character instagram limit in view.
+quotes, with the 2,200 character instagram limit in view.
+
+a post with a caption **opens rendered** — reading it is the common case, and
+markup is noise when you just want to reread your copy. switch to `write` to
+edit; a post with nothing in it yet opens ready to type.
 
 each post also keeps a list of **reference links** — the article you're reacting
 to, the figma file, the doc you're citing. paste a url, hit enter, click it later
