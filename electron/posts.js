@@ -13,6 +13,16 @@ const TYPES = ['feed', 'reels', 'carousel', 'stories'];
 // Files written before the app switched to English used the Portuguese value.
 const LEGACY_TYPES = { carrossel: 'carousel' };
 
+/**
+ * gray-matter caches the file object *before* parsing it, and only when no
+ * options are passed (see gray-matter/index.js). When a file throws, that
+ * half-built object stays in the cache, so every later read of the same content
+ * silently "succeeds" with empty frontmatter and the raw YAML as the body — the
+ * post would look fine in the UI and saving it would write the garbage back.
+ * Passing an options object opts out of that cache entirely.
+ */
+const PARSE_OPTIONS = Object.freeze({});
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -131,7 +141,7 @@ async function readOne(filename) {
   const full = resolveInVault(filename);
   const raw = await fs.readFile(full, 'utf8');
   try {
-    return normalize(filename, matter(raw));
+    return normalize(filename, matter(raw, PARSE_OPTIONS));
   } catch (err) {
     // A single malformed file must not break the whole list.
     return {
