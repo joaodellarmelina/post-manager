@@ -9,8 +9,8 @@ import { MarkdownView } from './MarkdownView';
 import { Field, IconButton, Label, Segmented } from './primitives';
 
 const CAPTION_LIMIT = 2200;
-const BODY_MODES = ['write', 'preview'] as const;
-const BODY_MODE_LABELS = { write: 'write', preview: 'preview' };
+const BODY_MODES = ['preview', 'write'] as const;
+const BODY_MODE_LABELS = { preview: 'preview', write: 'write' };
 const AUTOSAVE_MS = 800;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -195,7 +195,13 @@ export function EditorPanel({
   const t = useTheme();
   const [draft, setDraft] = useState<PostDraft>(post);
   const [state, setState] = useState<SaveState>('idle');
-  const [bodyMode, setBodyMode] = useState<(typeof BODY_MODES)[number]>('write');
+  // Reading a caption is the common case, so open in preview — except on a post
+  // with nothing to read yet, which is exactly when the editor is wanted.
+  // Decided once per opened post: the parent keys this panel on the post it
+  // opened, not on the filename, which changes under us on save and rename.
+  const [bodyMode, setBodyMode] = useState<(typeof BODY_MODES)[number]>(() =>
+    post.body.trim() ? 'preview' : 'write',
+  );
   const [message, setMessage] = useState<string | null>(null);
 
   // `filename` changes under us when a save renames the file.
@@ -211,6 +217,7 @@ export function EditorPanel({
     setState('idle');
     setMessage(null);
   }, [post.filename, post.title, post.date, post.time, post.status, post.type, post.body]);
+
 
   const flush = useCallback(async () => {
     if (timer.current) {
