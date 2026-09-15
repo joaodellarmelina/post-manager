@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Platform, Text, TextInput, View } from 'react-native';
 import { hasBridge, vault, type Answers, type Post, type PostDraft } from '../api';
 import { EditorPanel } from '../components/EditorPanel';
+import { LinksSheet } from '../components/LinksSheet';
 import { MonthGrid } from '../components/MonthGrid';
 import { EMPTY_ANSWERS, OnboardingSheet } from '../components/OnboardingSheet';
 import { PostList } from '../components/PostList';
@@ -58,7 +59,9 @@ function emptyDraft(date: string): PostDraft {
 export function CalendarScreen() {
   const t = useTheme();
   const { posts, loading, error, save, remove } = usePosts();
-  const { links: quickLinks, edit: editLinks } = useQuickLinks();
+  const { links: quickLinks } = useQuickLinks();
+  const [showLinks, setShowLinks] = useState(false);
+  const editLinks = useCallback(() => setShowLinks(true), []);
 
   const now = useMemo(() => new Date(), []);
   const [year, setYear] = useState(now.getFullYear());
@@ -217,6 +220,10 @@ export function CalendarScreen() {
       setShowProfile(false);
       return true;
     }
+    if (showLinks) {
+      setShowLinks(false);
+      return true;
+    }
     if (showShortcuts) {
       setShowShortcuts(false);
       return true;
@@ -227,7 +234,7 @@ export function CalendarScreen() {
       return true;
     }
     return false;
-  }, [onboarding, closeOnboarding, showProfile, showShortcuts, draftPost, selected]);
+  }, [onboarding, closeOnboarding, showProfile, showLinks, showShortcuts, draftPost, selected]);
 
   const goToday = useCallback(() => {
     const d = new Date();
@@ -462,6 +469,7 @@ export function CalendarScreen() {
       </View>
 
       {showShortcuts ? <ShortcutsSheet onClose={() => setShowShortcuts(false)} /> : null}
+      {showLinks ? <LinksSheet links={quickLinks} onClose={() => setShowLinks(false)} /> : null}
       {showProfile ? (
         <ProfileSheet onClose={() => setShowProfile(false)} onRedo={openOnboarding} />
       ) : null}

@@ -119,9 +119,11 @@ your posts, one markdown link per line:
 - [capcut](https://www.capcut.com)
 ```
 
-the file is created with a few examples on first launch. click the pencil in
-the toolbar (or `⌘⇧L`) to open it in your editor; save, and the toolbar updates.
-only `http(s)` links are picked up, so notes around the list are fine.
+the file is created with a few examples on first launch. the pencil in the
+toolbar (or `⌘⇧L`) opens a small editor in the app — add, rename, reorder,
+remove — that writes the list back; `open file` there gets you the markdown if
+you'd rather. edit it anywhere else and the toolbar follows. only `http(s)`
+links are picked up, so notes above the list are kept as they are.
 
 ## agents friendly
 

@@ -2,7 +2,7 @@
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { VAULT_DIR } = require('./posts');
+const { VAULT_DIR, atomicWrite } = require('./posts');
 
 /**
  * Quick links live next to the posts, in `links.md`, so they travel with the
@@ -60,4 +60,36 @@ async function seedIfMissing() {
   }
 }
 
-module.exports = { LINKS_FILE, LINKS_PATH, parseLinks, listLinks, seedIfMissing };
+/**
+ * Rewrites the list while keeping whatever the person wrote above it — notes,
+ * a heading — so the file stays theirs. Everything from the first link line
+ * down is replaced.
+ */
+async function writeLinks(links) {
+  const clean = [];
+  const seen = new Set();
+  for (const l of Array.isArray(links) ? links : []) {
+    const label = String(l?.label ?? '').trim();
+    const url = String(l?.url ?? '').trim();
+    if (!label || !/^https?:\/\/\S+$/i.test(url) || seen.has(url)) continue;
+    seen.add(url);
+    clean.push({ label: label.replace(/[\[\]]/g, ''), url });
+  }
+
+  let head = SEED.split('\n').filter((line) => !LINK_RE.test(line)).join('\n').replace(/\s+$/, '');
+  try {
+    const raw = await fs.readFile(LINKS_PATH, 'utf8');
+    const lines = raw.split(/\r?\n/);
+    const first = lines.findIndex((line) => LINK_RE.test(line));
+    head = (first === -1 ? lines : lines.slice(0, first)).join('\n').replace(/\s+$/, '');
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
+
+  const list = clean.map((l) => `- [${l.label}](${l.url})`).join('\n');
+  await fs.mkdir(VAULT_DIR, { recursive: true });
+  await atomicWrite(LINKS_PATH, `${head}\n\n${list}\n`);
+  return clean;
+}
+
+module.exports = { LINKS_FILE, LINKS_PATH, parseLinks, listLinks, seedIfMissing, writeLinks };

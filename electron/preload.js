@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('vault', {
   getDir: () => ipcRenderer.invoke('posts:dir'),
   /** Toolbar quick links, read from `links.md` in the vault. */
   listLinks: () => ipcRenderer.invoke('links:list'),
+  writeLinks: (list) => ipcRenderer.invoke('links:write', list),
   editLinks: () => ipcRenderer.invoke('links:edit'),
   /** Creator profile: instructions.md and the derived AGENTS.md / CLAUDE.md. */
   readInstructions: () => ipcRenderer.invoke('instructions:read'),

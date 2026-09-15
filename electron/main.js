@@ -137,6 +137,12 @@ function registerIpc() {
   ipcMain.handle('posts:dir', () => posts.VAULT_DIR);
 
   ipcMain.handle('links:list', () => links.listLinks());
+  ipcMain.handle('links:write', async (_e, list) => {
+    selfWriteUntil = Date.now() + 700;
+    const saved = await links.writeLinks(list);
+    selfWriteUntil = Date.now() + 700;
+    return saved;
+  });
   ipcMain.handle('links:edit', async () => {
     // Recreate the template if it was deleted, then hand it to the default editor.
     await links.seedIfMissing();

@@ -60,6 +60,7 @@ interface VaultBridge {
   reveal(filename?: string): Promise<boolean>;
   getDir(): Promise<string>;
   listLinks(): Promise<QuickLink[]>;
+  writeLinks(list: QuickLink[]): Promise<QuickLink[]>;
   editLinks(): Promise<boolean>;
   readInstructions(): Promise<{ answers: Answers | null; body?: string; error?: string }>;
   writeInstructions(answers: Answers): Promise<Answers>;
@@ -92,6 +93,9 @@ const missing: VaultBridge = {
   reveal: async () => false,
   getDir: async () => '',
   listLinks: async () => [],
+  writeLinks: async () => {
+    throw new Error('bridge unavailable');
+  },
   editLinks: async () => false,
   readInstructions: async () => ({ answers: null }),
   writeInstructions: async () => {

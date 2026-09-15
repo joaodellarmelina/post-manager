@@ -29,5 +29,5 @@ export function useQuickLinks() {
     };
   }, [reload]);
 
-  return { links, edit: vault.editLinks };
+  return { links };
 }
