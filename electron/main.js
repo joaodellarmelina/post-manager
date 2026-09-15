@@ -7,6 +7,7 @@ const fsp = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 
 const posts = require('./posts');
+const links = require('./links');
 const { buildMenu } = require('./menu');
 
 const isDev = process.env.ELECTRON_DEV === '1';
@@ -134,6 +135,14 @@ function registerIpc() {
   ipcMain.handle('posts:read', (_e, filename) => posts.readOne(filename));
   ipcMain.handle('posts:dir', () => posts.VAULT_DIR);
 
+  ipcMain.handle('links:list', () => links.listLinks());
+  ipcMain.handle('links:edit', async () => {
+    // Recreate the template if it was deleted, then hand it to the default editor.
+    await links.seedIfMissing();
+    await shell.openPath(links.LINKS_PATH);
+    return true;
+  });
+
   ipcMain.handle('posts:save', async (_e, filename, data) => {
     selfWriteUntil = Date.now() + 700;
     const saved = await posts.savePost(filename || null, data ?? {});
@@ -180,6 +189,7 @@ if (!gotLock) {
 
     try {
       await posts.seedIfEmpty();
+      await links.seedIfMissing();
     } catch (err) {
       dialog.showErrorBox('Could not open the posts folder', String(err.message ?? err));
     }

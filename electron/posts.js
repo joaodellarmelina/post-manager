@@ -7,6 +7,9 @@ const matter = require('gray-matter');
 
 const VAULT_DIR = path.join(os.homedir(), 'Documents', 'post-manager');
 
+/** Files that share the folder but are not posts. */
+const RESERVED = new Set(['links.md']);
+
 const STATUSES = ['draft', 'ready', 'published'];
 const TYPES = ['feed', 'reels', 'carousel', 'stories'];
 
@@ -163,7 +166,9 @@ async function listPosts() {
   await ensureDir();
   const entries = await fs.readdir(VAULT_DIR, { withFileTypes: true });
   const names = entries
-    .filter((e) => e.isFile() && e.name.endsWith('.md') && !e.name.startsWith('.'))
+    .filter(
+      (e) => e.isFile() && e.name.endsWith('.md') && !e.name.startsWith('.') && !RESERVED.has(e.name),
+    )
     .map((e) => e.name);
 
   const posts = await Promise.all(
@@ -261,7 +266,7 @@ async function savePost(filename, data) {
 async function seedIfEmpty() {
   await ensureDir();
   const entries = await fs.readdir(VAULT_DIR);
-  if (entries.some((n) => n.endsWith('.md'))) return;
+  if (entries.some((n) => n.endsWith('.md') && !RESERVED.has(n))) return;
   await savePost(null, {
     title: 'welcome to post manager',
     date: todayISO(),

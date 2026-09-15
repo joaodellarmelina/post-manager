@@ -17,9 +17,16 @@ export interface Post {
 
 export type PostDraft = Omit<Post, 'filename' | 'error'>;
 
+/** A toolbar shortcut to an external tool, from `links.md` in the vault. */
+export interface QuickLink {
+  label: string;
+  url: string;
+}
+
 type MenuAction =
   | 'new' | 'save' | 'close-panel' | 'today' | 'delete'
-  | 'search' | 'prev-month' | 'next-month' | 'toggle-sidebar' | 'shortcuts' | 'toggle-view';
+  | 'search' | 'prev-month' | 'next-month' | 'toggle-sidebar' | 'shortcuts' | 'toggle-view'
+  | 'edit-links';
 
 interface VaultBridge {
   list(): Promise<Post[]>;
@@ -28,6 +35,8 @@ interface VaultBridge {
   remove(filename: string): Promise<boolean>;
   reveal(filename?: string): Promise<boolean>;
   getDir(): Promise<string>;
+  listLinks(): Promise<QuickLink[]>;
+  editLinks(): Promise<boolean>;
   closeWindow(): void;
   onChanged(cb: () => void): () => void;
   onMenu(cb: (action: MenuAction) => void): () => void;
@@ -55,6 +64,8 @@ const missing: VaultBridge = {
   remove: async () => false,
   reveal: async () => false,
   getDir: async () => '',
+  listLinks: async () => [],
+  editLinks: async () => false,
   closeWindow: () => {},
   onChanged: () => () => {},
   onMenu: () => () => {},

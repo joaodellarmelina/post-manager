@@ -15,6 +15,7 @@ const GROUPS: { title: string; items: [string, string[]][] }[] = [
       ['save', ['⌘', 'S']],
       ['move to trash', ['⌘', '⌫']],
       ['open folder in finder', ['⌘', '⇧', 'O']],
+      ['edit quick links', ['⌘', '⇧', 'L']],
     ],
   },
   {

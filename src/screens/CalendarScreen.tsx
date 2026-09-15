@@ -4,11 +4,13 @@ import { hasBridge, vault, type Post, type PostDraft } from '../api';
 import { EditorPanel } from '../components/EditorPanel';
 import { MonthGrid } from '../components/MonthGrid';
 import { PostList } from '../components/PostList';
+import { QuickLinks } from '../components/QuickLinks';
 import { ShortcutsSheet } from '../components/ShortcutsSheet';
 import { Sidebar, type Filters } from '../components/Sidebar';
 import { Field, GithubButton, IconButton, PrimaryButton, Segmented } from '../components/primitives';
 import { addMonths, monthLabel, todayISO } from '../dates';
 import { usePosts } from '../hooks/usePosts';
+import { useQuickLinks } from '../hooks/useQuickLinks';
 import { font, useTheme } from '../theme';
 import { DRAG, NO_DRAG } from '../webStyles';
 
@@ -49,6 +51,7 @@ function emptyDraft(date: string): PostDraft {
 export function CalendarScreen() {
   const t = useTheme();
   const { posts, loading, error, save, remove } = usePosts();
+  const { links: quickLinks, edit: editLinks } = useQuickLinks();
 
   const now = useMemo(() => new Date(), []);
   const [year, setYear] = useState(now.getFullYear());
@@ -199,9 +202,12 @@ export function CalendarScreen() {
         case 'toggle-view':
           changeView(view === 'calendar' ? 'list' : 'calendar');
           break;
+        case 'edit-links':
+          editLinks();
+          break;
       }
     });
-  }, [createAt, closePanel, handleDelete, goToday, shiftMonth, selected, view, changeView]);
+  }, [createAt, closePanel, handleDelete, goToday, shiftMonth, selected, view, changeView, editLinks]);
 
   // Esc closes the panel — the macOS idiom for a transient inspector.
   useEffect(() => {
@@ -279,7 +285,9 @@ export function CalendarScreen() {
           </Text>
         )}
 
-        <View style={{ flex: 1 }} />
+        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', minWidth: 0, paddingHorizontal: 12 }}>
+          <QuickLinks links={quickLinks} onEdit={editLinks} />
+        </View>
 
         <View dataSet={NO_DRAG} style={{ width: 190 }}>
           <Field inputRef={searchRef} value={query} onChangeText={setQuery} placeholder="search" />

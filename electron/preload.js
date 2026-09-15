@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('vault', {
   remove: (filename) => ipcRenderer.invoke('posts:remove', filename),
   reveal: (filename) => ipcRenderer.invoke('posts:reveal', filename),
   getDir: () => ipcRenderer.invoke('posts:dir'),
+  /** Toolbar quick links, read from `links.md` in the vault. */
+  listLinks: () => ipcRenderer.invoke('links:list'),
+  editLinks: () => ipcRenderer.invoke('links:edit'),
   closeWindow: () => ipcRenderer.send('window:close'),
 
   /** Fired when the folder changes on disk, including from other apps. */

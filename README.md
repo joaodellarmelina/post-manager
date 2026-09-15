@@ -81,6 +81,21 @@ to open it in your browser.
   <img src="docs/calendar-dark.png" width="800" alt="dark mode">
 </p>
 
+## quick links to your tools
+
+the toolbar carries shortcuts to whatever sits around your writing — figma,
+capcut, the network itself. they come from `links.md` in the same folder as
+your posts, one markdown link per line:
+
+```markdown
+- [figma](https://www.figma.com)
+- [capcut](https://www.capcut.com)
+```
+
+the file is created with a few examples on first launch. click the pencil in
+the toolbar (or `⌘⇧L`) to open it in your editor; save, and the toolbar updates.
+only `http(s)` links are picked up, so notes around the list are fine.
+
 ## shortcuts
 
 | | |
@@ -97,6 +112,7 @@ to open it in your browser.
 | `⌘/` | this shortcuts guide |
 | `⌘⌫` | move post to trash |
 | `⌘⇧O` | open the folder in finder |
+| `⌘⇧L` | edit the quick links |
 
 press `⌘/` or click the `⌘` button in the toolbar to see them in the app.
 
@@ -155,6 +171,7 @@ go for it. open a pr and i'll run it on my end and build a new version :)
 electron/main.js      window, app:// protocol, menu, folder watcher
 electron/preload.js   contextBridge → window.vault (the only exposed surface)
 electron/posts.js     fs/promises + gray-matter
+electron/links.js     links.md → toolbar quick links
 src/                  expo / react-native-web ui
 ```
 
