@@ -41,6 +41,21 @@ export interface Answers {
   references: string;
 }
 
+export type AgentId = 'claude' | 'codex' | 'gemini';
+export type TerminalId = 'terminal' | 'warp';
+
+/** Which agent CLIs the login shell can find, and which terminals are installed. */
+export interface AgentDetection {
+  agents: Record<AgentId, string | null>;
+  terminals: TerminalId[];
+}
+
+export interface AgentLaunch {
+  agent: AgentId;
+  terminal: TerminalId;
+  prompt: string;
+}
+
 /** A toolbar shortcut to an external tool, from `links.md` in the vault. */
 export interface QuickLink {
   label: string;
@@ -50,7 +65,7 @@ export interface QuickLink {
 type MenuAction =
   | 'new' | 'save' | 'close-panel' | 'today' | 'delete'
   | 'search' | 'prev-month' | 'next-month' | 'toggle-sidebar' | 'shortcuts' | 'toggle-view'
-  | 'edit-links' | 'onboarding' | 'profile';
+  | 'edit-links' | 'onboarding' | 'profile' | 'agent';
 
 interface VaultBridge {
   list(): Promise<Post[]>;
@@ -65,6 +80,8 @@ interface VaultBridge {
   readInstructions(): Promise<{ answers: Answers | null; body?: string; error?: string }>;
   writeInstructions(answers: Answers): Promise<Answers>;
   openInstructions(): Promise<boolean>;
+  detectAgents(): Promise<AgentDetection>;
+  launchAgent(opts: AgentLaunch): Promise<{ agent: string; terminal: string }>;
   closeWindow(): void;
   onChanged(cb: () => void): () => void;
   onMenu(cb: (action: MenuAction) => void): () => void;
@@ -102,6 +119,10 @@ const missing: VaultBridge = {
     throw new Error('bridge unavailable');
   },
   openInstructions: async () => false,
+  detectAgents: async () => ({ agents: { claude: null, codex: null, gemini: null }, terminals: ['terminal'] }),
+  launchAgent: async () => {
+    throw new Error('bridge unavailable');
+  },
   closeWindow: () => {},
   onChanged: () => () => {},
   onMenu: () => () => {},

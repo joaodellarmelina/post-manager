@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('vault', {
   readInstructions: () => ipcRenderer.invoke('instructions:read'),
   writeInstructions: (answers) => ipcRenderer.invoke('instructions:write', answers),
   openInstructions: () => ipcRenderer.invoke('instructions:open'),
+  /** Coding agents: which CLIs exist, and open one in the posts folder. */
+  detectAgents: () => ipcRenderer.invoke('agents:detect'),
+  launchAgent: (opts) => ipcRenderer.invoke('agents:launch', opts),
   closeWindow: () => ipcRenderer.send('window:close'),
 
   /** Fired when the folder changes on disk, including from other apps. */

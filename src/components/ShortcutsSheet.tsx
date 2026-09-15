@@ -18,6 +18,7 @@ const GROUPS: { title: string; items: [string, string[]][] }[] = [
       ['edit quick links', ['⌘', '⇧', 'L']],
       ['read your creator profile', ['⌘', '⇧', 'P']],
       ['redo the onboarding', ['⌘', '⇧', 'I']],
+      ['open an agent in the folder', ['⌘', '⇧', 'A']],
     ],
   },
   {

@@ -9,6 +9,7 @@ const { pathToFileURL } = require('node:url');
 const posts = require('./posts');
 const links = require('./links');
 const instructions = require('./instructions');
+const agents = require('./agents');
 const { buildMenu } = require('./menu');
 
 const isDev = process.env.ELECTRON_DEV === '1';
@@ -161,6 +162,9 @@ function registerIpc() {
     await shell.openPath(instructions.INSTRUCTIONS);
     return true;
   });
+
+  ipcMain.handle('agents:detect', () => agents.detect());
+  ipcMain.handle('agents:launch', (_e, opts) => agents.launch(opts ?? {}));
 
   ipcMain.handle('posts:save', async (_e, filename, data) => {
     selfWriteUntil = Date.now() + 700;

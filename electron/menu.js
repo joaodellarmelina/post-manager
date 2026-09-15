@@ -40,6 +40,8 @@ function buildMenu(getWindow, vaultDir) {
         { label: 'Creator Profile…', accelerator: 'CmdOrCtrl+Shift+P', click: send('profile') },
         { label: 'Onboarding…', accelerator: 'CmdOrCtrl+Shift+I', click: send('onboarding') },
         { type: 'separator' },
+        { label: 'Open Agent in Folder…', accelerator: 'CmdOrCtrl+Shift+A', click: send('agent') },
+        { type: 'separator' },
         {
           label: 'Move to Trash',
           accelerator: 'CmdOrCtrl+Backspace',

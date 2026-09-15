@@ -171,14 +171,28 @@ references, language and networks) and writes three files next to your posts:
   <img src="docs/onboarding.png" width="800" alt="onboarding — options to tick, every screen skippable">
 </p>
 
-then, from a terminal in `~/Documents/post-manager`:
+then press **`✦ agent`** in the toolbar (or `⌘⇧A`): pick claude code, codex or
+gemini cli, optionally a starter prompt — *draft next week*, *review drafts*,
+*ideas* — and it opens a terminal already inside `~/Documents/post-manager` with
+the agent running. claude code reads `CLAUDE.md` on arrival and codex reads
+`AGENTS.md`; both point to `instructions.md`. type what you want:
 
 ```
-read AGENTS.md and instructions.md, then draft three reels for next week about
-the second pillar. one file each, status draft.
+draft three reels for next week about the second pillar. one file each, status draft.
 ```
 
-the app picks the new files up instantly. the `profile` button in the toolbar
+the app picks the new files up instantly — that's the whole loop.
+
+<p align="center">
+  <img src="docs/agent.png" width="800" alt="open an agent in your posts folder">
+</p>
+
+under the hood it writes a small `.command` file and opens it with Terminal.app
+(or a launch configuration for warp, if you have it) — no automation permissions,
+no apple events. it is a terminal rather than the claude or codex desktop app
+because neither exposes an "open this folder" url; the CLIs are also where those
+context files are read automatically. agents that aren't installed show the
+install command instead. the `profile` button in the toolbar
 (or `⌘⇧P`) shows `instructions.md` rendered, with `edit answers` to redo the
 onboarding from your previous answers — or `⌘⇧I` goes straight there. none of
 the questions is required.
@@ -206,6 +220,7 @@ the questions is required.
 | `⌘⇧L` | edit the quick links |
 | `⌘⇧P` | read your creator profile |
 | `⌘⇧I` | redo the onboarding |
+| `⌘⇧A` | open an agent in the folder |
 
 press `⌘/` or click the `⌘` button in the toolbar to see them in the app.
 
@@ -266,6 +281,7 @@ electron/preload.js   contextBridge → window.vault (the only exposed surface)
 electron/posts.js     fs/promises + gray-matter
 electron/links.js     links.md → toolbar quick links
 electron/instructions.js  onboarding answers → instructions.md, AGENTS.md, CLAUDE.md
+electron/agents.js    opens claude code / codex / gemini in the folder, in a terminal
 src/                  expo / react-native-web ui
 ```
 

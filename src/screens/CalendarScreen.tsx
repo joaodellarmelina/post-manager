@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Text, TextInput, View } from 'react-native';
 import { hasBridge, vault, type Answers, type Post, type PostDraft } from '../api';
+import { AgentSheet } from '../components/AgentSheet';
 import { EditorPanel } from '../components/EditorPanel';
 import { LinksSheet } from '../components/LinksSheet';
 import { MonthGrid } from '../components/MonthGrid';
@@ -75,6 +76,8 @@ export function CalendarScreen() {
   // null = closed; otherwise the answers the sheet opens with.
   const [onboarding, setOnboarding] = useState<Answers | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [showAgent, setShowAgent] = useState(false);
+  const [hasProfile, setHasProfile] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const onboardingChecked = useRef(false);
   // Bumped only when a different post is opened. The editor panel is keyed on
@@ -104,8 +107,19 @@ export function CalendarScreen() {
     if (error) setNotice(error);
     const seen = Array.from(new Set(posts.map((p) => p.network)));
     setShowProfile(false);
+    setShowAgent(false);
     setOnboarding(answers ?? { ...EMPTY_ANSWERS, networks: seen });
   }, [posts]);
+
+  const openAgent = useCallback(async () => {
+    try {
+      const { answers } = await vault.readInstructions();
+      setHasProfile(!!answers);
+    } catch {
+      setHasProfile(true);
+    }
+    setShowAgent(true);
+  }, []);
 
   const saveOnboarding = useCallback(async (answers: Answers) => {
     await vault.writeInstructions(answers);
@@ -216,6 +230,10 @@ export function CalendarScreen() {
       closeOnboarding();
       return true;
     }
+    if (showAgent) {
+      setShowAgent(false);
+      return true;
+    }
     if (showProfile) {
       setShowProfile(false);
       return true;
@@ -234,7 +252,7 @@ export function CalendarScreen() {
       return true;
     }
     return false;
-  }, [onboarding, closeOnboarding, showProfile, showLinks, showShortcuts, draftPost, selected]);
+  }, [onboarding, closeOnboarding, showAgent, showProfile, showLinks, showShortcuts, draftPost, selected]);
 
   const goToday = useCallback(() => {
     const d = new Date();
@@ -298,11 +316,14 @@ export function CalendarScreen() {
         case 'profile':
           setShowProfile((v) => !v);
           break;
+        case 'agent':
+          openAgent();
+          break;
       }
     });
   }, [
     createAt, closePanel, handleDelete, goToday, shiftMonth, selected, view, changeView, editLinks,
-    openOnboarding,
+    openOnboarding, openAgent,
   ]);
 
   // Esc closes the panel — the macOS idiom for a transient inspector.
@@ -389,6 +410,7 @@ export function CalendarScreen() {
           <Field inputRef={searchRef} value={query} onChangeText={setQuery} placeholder="search" />
         </View>
         <IconButton label="finder" onPress={() => vault.reveal()} wide accessibilityLabel="open folder in finder" />
+        <IconButton label="✦ agent" onPress={openAgent} wide accessibilityLabel="open an agent in the posts folder" />
         <IconButton
           label="profile"
           onPress={() => setShowProfile((v) => !v)}
@@ -415,13 +437,16 @@ export function CalendarScreen() {
         <View style={{ padding: 8, backgroundColor: t.accentSoft }}>
           <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
             {notice}
-            <Text
-              accessibilityRole="button"
-              onPress={() => vault.openInstructions()}
-              style={{ color: t.accentStrong, textDecorationLine: 'underline' }}
-            >
-              {'  '}open instructions.md
-            </Text>
+            {/* The link only makes sense when the notice is about that file. */}
+            {/instructions\.md/.test(notice) ? (
+              <Text
+                accessibilityRole="button"
+                onPress={() => vault.openInstructions()}
+                style={{ color: t.accentStrong, textDecorationLine: 'underline' }}
+              >
+                {'  '}open instructions.md
+              </Text>
+            ) : null}
           </Text>
         </View>
       ) : null}
@@ -470,6 +495,17 @@ export function CalendarScreen() {
 
       {showShortcuts ? <ShortcutsSheet onClose={() => setShowShortcuts(false)} /> : null}
       {showLinks ? <LinksSheet links={quickLinks} onClose={() => setShowLinks(false)} /> : null}
+      {showAgent ? (
+        <AgentSheet
+          hasProfile={hasProfile}
+          onSetupProfile={openOnboarding}
+          onLaunched={(msg) => {
+            setShowAgent(false);
+            setNotice(msg);
+          }}
+          onClose={() => setShowAgent(false)}
+        />
+      ) : null}
       {showProfile ? (
         <ProfileSheet onClose={() => setShowProfile(false)} onRedo={openOnboarding} />
       ) : null}

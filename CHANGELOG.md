@@ -5,6 +5,26 @@ all notable changes to post manager. the format follows
 [semver](https://semver.org/). each release ships two dmgs — `arm64` for apple
 silicon, `x64` for intel — on the [releases page](https://github.com/joaodellarmelina/post-manager/releases).
 
+## [1.5.0] — 2026-09-15
+
+the loop closes: the folder describes itself and you, and the toolbar now opens
+an agent inside it.
+
+### added
+
+- **`✦ agent` in the toolbar** (`⌘⇧A`, File → Open Agent in Folder…). pick claude
+  code, codex or gemini cli — detected through your login shell — and an optional
+  starter prompt (*draft next week*, *review drafts*, *ideas*), and a terminal
+  opens already inside `~/Documents/post-manager` with the agent running. claude
+  code reads `CLAUDE.md` and codex reads `AGENTS.md` on arrival; both point to
+  `instructions.md`. opens in Terminal.app by default, or warp when installed;
+  agents that aren't installed show their install command instead.
+
+### fixed
+
+- a newline inside a paragraph rendered as a line break in previews; markdown
+  treats it as a space, and so does the app now.
+
 ## [1.4.0] — 2026-09-15
 
 the "agents friendly" release: the folder now carries enough about you and about
@@ -106,6 +126,7 @@ status, type, tags and caption. the folder is watched, so edits from any other
 app show up instantly. superseded by 1.1.0 — the packaged app at this tag would
 not open on macOS; the source is fine.
 
+[1.5.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.1.0...v1.2.0

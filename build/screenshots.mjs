@@ -134,6 +134,13 @@ await sleep(300);
 await shot('onboarding');
 await escape();
 
+// Agent picker.
+await clickLabel('open an agent in the posts folder');
+await sleep(700);
+await shot('agent');
+await escape();
+await sleep(300);
+
 // Quick links editor.
 await clickLabel('edit quick links');
 await sleep(500);
