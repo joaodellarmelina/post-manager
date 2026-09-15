@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { Answers, Language, Network } from '../api';
 import { NETWORK_LABEL, NETWORKS } from '../networks';
@@ -6,61 +6,151 @@ import { font, radius, useTheme } from '../theme';
 import { Field, IconButton, PrimaryButton, Segmented } from './primitives';
 
 /**
- * Eight direct questions, one per screen, that become `instructions.md` — the
- * creator profile an agent reads before writing posts into the folder. Nothing
- * is required: a skipped question simply leaves its section out of the file.
+ * Eight quick screens that become `instructions.md`. Each one is a set of
+ * options to tick plus an optional line of your own; every screen can be
+ * skipped. Options are shown — and stored — in the language the posts are
+ * written in, so the generated prompt reads naturally.
+ *
+ * Answers stay plain strings in the file ("dev, founder — joão"), which is
+ * what an agent reads; reopening the onboarding maps the known labels back to
+ * ticks and leaves the rest in the free-text line.
  */
 
 type TextKey = Exclude<keyof Answers, 'language' | 'networks'>;
+type Option = { pt: string; en: string };
 
-const STEPS: { key: TextKey; question: string; hint: string; placeholder: string }[] = [
+type Step = {
+  key: TextKey;
+  question: string;
+  hint: string;
+  options: Option[];
+  /** Placeholder of the free-text line; omitted → no line. */
+  free?: string;
+};
+
+const STEPS: Step[] = [
   {
     key: 'who',
-    question: 'who are you, in one line?',
-    hint: 'name or handle, and what you do. the name becomes the title of the file.',
-    placeholder: 'joão, developer who talks about ai and product',
+    question: 'what do you do?',
+    hint: 'tick what fits, add your name or handle.',
+    options: [
+      { pt: 'dev', en: 'developer' },
+      { pt: 'designer', en: 'designer' },
+      { pt: 'fundador(a)', en: 'founder' },
+      { pt: 'product manager', en: 'product manager' },
+      { pt: 'marketing', en: 'marketer' },
+      { pt: 'criador(a) de conteúdo', en: 'content creator' },
+      { pt: 'consultor(a)', en: 'consultant' },
+      { pt: 'professor(a)', en: 'teacher' },
+      { pt: 'estudante', en: 'student' },
+    ],
+    free: 'your name or handle',
   },
   {
     key: 'audience',
     question: 'who are you writing for?',
-    hint: 'the person on the other side — what they do, what they want, what they already know.',
-    placeholder: 'developers and product people curious about ai but tired of hype',
+    hint: 'the person on the other side.',
+    options: [
+      { pt: 'devs', en: 'developers' },
+      { pt: 'designers', en: 'designers' },
+      { pt: 'fundadores', en: 'founders' },
+      { pt: 'pessoas de produto', en: 'product people' },
+      { pt: 'marketing', en: 'marketers' },
+      { pt: 'iniciantes em tech', en: 'beginners in tech' },
+      { pt: 'profissionais sênior', en: 'senior professionals' },
+      { pt: 'donos de pequenos negócios', en: 'small business owners' },
+      { pt: 'estudantes', en: 'students' },
+      { pt: 'público geral', en: 'general public' },
+    ],
+    free: 'anything else about them',
   },
   {
     key: 'pillars',
-    question: 'your 3–5 content pillars',
-    hint: 'the topics you always come back to.',
-    placeholder: 'applied ai · building products · career in tech · behind the scenes',
+    question: 'your content pillars',
+    hint: 'the topics you always come back to. three to five is plenty.',
+    options: [
+      { pt: 'ia aplicada', en: 'applied ai' },
+      { pt: 'programação', en: 'programming' },
+      { pt: 'produto', en: 'product' },
+      { pt: 'design', en: 'design' },
+      { pt: 'carreira', en: 'career' },
+      { pt: 'empreendedorismo', en: 'entrepreneurship' },
+      { pt: 'produtividade', en: 'productivity' },
+      { pt: 'bastidores', en: 'behind the scenes' },
+      { pt: 'educação', en: 'education' },
+      { pt: 'finanças', en: 'personal finance' },
+      { pt: 'notícias e análise', en: 'news and analysis' },
+      { pt: 'lifestyle', en: 'lifestyle' },
+    ],
+    free: 'another topic',
   },
   {
     key: 'voice',
     question: 'how do you sound?',
-    hint: 'tone, and two or three expressions that are yours.',
-    placeholder: 'direct, no jargon, a bit irreverent. says "bora", "na prática", "sem rodeio".',
+    hint: 'tone first; expressions that are yours go in the line below.',
+    options: [
+      { pt: 'direto', en: 'direct' },
+      { pt: 'casual', en: 'casual' },
+      { pt: 'técnico', en: 'technical' },
+      { pt: 'bem-humorado', en: 'humorous' },
+      { pt: 'provocador', en: 'provocative' },
+      { pt: 'acolhedor', en: 'warm' },
+      { pt: 'narrativo', en: 'storytelling' },
+      { pt: 'minimalista', en: 'minimalist' },
+      { pt: 'primeira pessoa', en: 'first person' },
+      { pt: 'sem jargão', en: 'no jargon' },
+    ],
+    free: 'expressions you use: "bora", "na prática"…',
   },
   {
     key: 'goal',
     question: 'what should your posts cause?',
-    hint: 'grow an audience, build authority, sell something, get hired…',
-    placeholder: 'authority in applied ai, and sign-ups to the newsletter',
+    hint: 'pick the one or two that matter most.',
+    options: [
+      { pt: 'crescer a audiência', en: 'grow the audience' },
+      { pt: 'construir autoridade', en: 'build authority' },
+      { pt: 'vender um produto', en: 'sell a product' },
+      { pt: 'vender um serviço', en: 'sell a service' },
+      { pt: 'conseguir vagas', en: 'get hired' },
+      { pt: 'inscrições na newsletter', en: 'newsletter sign-ups' },
+      { pt: 'crescer uma comunidade', en: 'grow a community' },
+      { pt: 'documentar a jornada', en: 'document the journey' },
+      { pt: 'ensinar', en: 'teach' },
+    ],
+    free: 'something specific — "sell the course", "hire two devs"',
   },
   {
     key: 'avoid',
     question: 'what to avoid?',
-    hint: 'topics, words, clichés, formats you don’t want.',
-    placeholder: 'clickbait, "game changer", politics, get-rich-quick promises, emoji walls',
+    hint: 'the agent will not go there.',
+    options: [
+      { pt: 'clickbait', en: 'clickbait' },
+      { pt: 'política', en: 'politics' },
+      { pt: 'religião', en: 'religion' },
+      { pt: 'polêmica', en: 'controversy' },
+      { pt: 'jargão', en: 'jargon' },
+      { pt: 'muro de emojis', en: 'emoji walls' },
+      { pt: 'promessa de dinheiro fácil', en: 'get-rich-quick promises' },
+      { pt: 'tom corporativo', en: 'corporate tone' },
+      { pt: 'negatividade', en: 'negativity' },
+      { pt: 'textos longos', en: 'long texts' },
+      { pt: 'hashtags em excesso', en: 'too many hashtags' },
+    ],
+    free: 'words or topics of your own',
   },
   {
     key: 'references',
     question: 'creators or posts you admire',
-    hint: 'and what exactly you admire in them.',
-    placeholder: '@someone for clarity · @other for how they open a reel',
+    hint: 'optional. a handle and what you admire in it is enough.',
+    options: [],
+    free: '@someone for clarity · @other for how they open a reel',
   },
 ];
 
 const LANGUAGES = ['pt', 'en'] as const;
 const LANGUAGE_LABEL = { pt: 'português', en: 'english' };
 
+/** Language + networks first: the option labels depend on the language. */
 const TOTAL = STEPS.length + 1;
 
 export const EMPTY_ANSWERS: Answers = {
@@ -75,15 +165,50 @@ export const EMPTY_ANSWERS: Answers = {
   references: '',
 };
 
-function NetworkChip({
-  network,
-  selected,
-  onToggle,
-}: {
-  network: Network;
-  selected: boolean;
-  onToggle: () => void;
-}) {
+// ---------------------------------------------------------------------------
+// Answer strings ⇄ ticks + free line
+
+type Pick = { ticked: string[]; free: string };
+
+function label(o: Option, lang: Language) {
+  return lang === 'en' ? o.en : o.pt;
+}
+
+/** Recovers ticks from a stored answer; whatever is left over is the free line. */
+function parseAnswer(value: string, step: Step, lang: Language): Pick {
+  let rest = value;
+  const ticked: string[] = [];
+  for (const o of step.options) {
+    for (const l of [label(o, lang), o.pt, o.en]) {
+      const re = new RegExp(`(^|[,;—\\-]\\s*)${l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s*([,;—]|$))`, 'i');
+      if (re.test(rest)) {
+        ticked.push(label(o, lang));
+        rest = rest.replace(re, '$1');
+        break;
+      }
+    }
+  }
+  const free = rest
+    .replace(/\s*[,;]\s*(?=[,;]|$)/g, '')
+    .replace(/^[\s,;—-]+|[\s,;—-]+$/g, '')
+    .trim();
+  return { ticked, free };
+}
+
+function joinAnswer(p: Pick) {
+  const parts = [p.ticked.join(', '), p.free.trim()].filter(Boolean);
+  return parts.join(' — ');
+}
+
+/** `who` reads better as "name, roles": the name leads the file title. */
+function joinWho(p: Pick) {
+  const parts = [p.free.trim(), p.ticked.join(', ')].filter(Boolean);
+  return parts.join(', ');
+}
+
+// ---------------------------------------------------------------------------
+
+function Chip({ text, selected, onToggle }: { text: string; selected: boolean; onToggle: () => void }) {
   const t = useTheme();
   const [hover, setHover] = useState(false);
   return (
@@ -97,13 +222,17 @@ function NetworkChip({
         height: 28,
         paddingHorizontal: 11,
         borderRadius: radius.md,
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        gap: 6,
         backgroundColor: selected ? t.accentSoft : hover ? t.hover : t.field,
         borderWidth: 1,
         borderColor: selected ? 'transparent' : t.separator,
       }}
     >
+      <Text style={{ fontFamily: font.ui, fontSize: 11, color: selected ? t.accentStrong : t.textTertiary }}>
+        {selected ? '✓' : '○'}
+      </Text>
       <Text
         style={{
           fontFamily: font.ui,
@@ -112,7 +241,7 @@ function NetworkChip({
           color: selected ? t.accentStrong : t.text,
         }}
       >
-        {NETWORK_LABEL[network]}
+        {text}
       </Text>
     </Pressable>
   );
@@ -129,19 +258,50 @@ export function OnboardingSheet({
   onClose: () => void;
 }) {
   const t = useTheme();
-  const [answers, setAnswers] = useState<Answers>(initial);
+  const [language, setLanguage] = useState<Language>(initial.language);
+  const [networks, setNetworks] = useState<Network[]>(initial.networks);
+  const [picks, setPicks] = useState<Record<TextKey, Pick>>(() => {
+    const out = {} as Record<TextKey, Pick>;
+    for (const s of STEPS) {
+      out[s.key] = parseAnswer(initial[s.key], s, initial.language);
+    }
+    return out;
+  });
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const last = step === TOTAL - 1;
-  const current = STEPS[step];
+  const current = step === 0 ? null : STEPS[step - 1];
 
-  const next = useCallback(async () => {
-    if (!last) {
-      setStep((s) => s + 1);
-      return;
-    }
+  // Switching language re-labels the ticks so the stored strings follow.
+  const changeLanguage = useCallback(
+    (next: Language) => {
+      setPicks((p) => {
+        const out = { ...p };
+        for (const s of STEPS) {
+          out[s.key] = {
+            ...p[s.key],
+            ticked: p[s.key].ticked.map((tk) => {
+              const o = s.options.find((x) => x.pt === tk || x.en === tk);
+              return o ? label(o, next) : tk;
+            }),
+          };
+        }
+        return out;
+      });
+      setLanguage(next);
+    },
+    [],
+  );
+
+  const answers = useMemo<Answers>(() => {
+    const a: Answers = { ...EMPTY_ANSWERS, language, networks };
+    for (const s of STEPS) a[s.key] = s.key === 'who' ? joinWho(picks.who) : joinAnswer(picks[s.key]);
+    return a;
+  }, [language, networks, picks]);
+
+  const save = useCallback(async () => {
     setSaving(true);
     setError(null);
     try {
@@ -150,11 +310,21 @@ export function OnboardingSheet({
       setError(err instanceof Error ? err.message : String(err));
       setSaving(false);
     }
-  }, [last, answers, onSave]);
+  }, [answers, onSave]);
 
-  // Cmd+Enter advances; the text fields are multiline, so plain Enter is a
-  // newline. react-native-web's TextInput stops keydown from bubbling, so the
-  // field gets its own handler and the document one covers the last step.
+  const next = useCallback(() => {
+    if (last) save();
+    else setStep((s) => s + 1);
+  }, [last, save]);
+
+  /** Skip clears this screen's answer and moves on; on the last one it saves. */
+  const skip = useCallback(() => {
+    if (current) setPicks((p) => ({ ...p, [current.key]: { ticked: [], free: '' } }));
+    next();
+  }, [current, next]);
+
+  // Cmd+Enter advances, Esc closes. react-native-web's TextInput stops keydown
+  // from bubbling, so the free-text line gets the same handler directly.
   const onKeyDown = useCallback(
     (e: { key?: string; metaKey?: boolean; ctrlKey?: boolean; preventDefault?: () => void }) => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -175,11 +345,24 @@ export function OnboardingSheet({
     return () => document.removeEventListener('keydown', onKey);
   }, [onKeyDown]);
 
+  const toggleTick = (key: TextKey, text: string) =>
+    setPicks((p) => {
+      const cur = p[key];
+      const ticked = cur.ticked.includes(text) ? cur.ticked.filter((x) => x !== text) : [...cur.ticked, text];
+      return { ...p, [key]: { ...cur, ticked } };
+    });
+
   const toggleNetwork = (n: Network) =>
-    setAnswers((a) => ({
-      ...a,
-      networks: a.networks.includes(n) ? a.networks.filter((x) => x !== n) : [...a.networks, n],
-    }));
+    setNetworks((ns) => (ns.includes(n) ? ns.filter((x) => x !== n) : [...ns, n]));
+
+  const heading = (text: string) => (
+    <Text style={{ fontFamily: font.ui, fontSize: 16, fontWeight: '600', letterSpacing: -0.2, color: t.text }}>
+      {text}
+    </Text>
+  );
+  const hint = (text: string) => (
+    <Text style={{ fontFamily: font.ui, fontSize: 12, color: t.textSecondary, marginTop: -4 }}>{text}</Text>
+  );
 
   return (
     <View
@@ -210,7 +393,7 @@ export function OnboardingSheet({
       <View
         accessibilityRole="none"
         style={{
-          width: 460,
+          width: 520,
           borderRadius: radius.lg,
           backgroundColor: t.panelSolid,
           borderWidth: 1,
@@ -234,14 +417,7 @@ export function OnboardingSheet({
           }}
         >
           <Text
-            style={{
-              flex: 1,
-              fontFamily: font.ui,
-              fontSize: 13,
-              fontWeight: '600',
-              letterSpacing: -0.1,
-              color: t.text,
-            }}
+            style={{ flex: 1, fontFamily: font.ui, fontSize: 13, fontWeight: '600', letterSpacing: -0.1, color: t.text }}
           >
             your creator profile
           </Text>
@@ -251,62 +427,54 @@ export function OnboardingSheet({
           <IconButton label="✕" onPress={onClose} accessibilityLabel="close onboarding" />
         </View>
 
-        <View style={{ padding: 18, gap: 10, minHeight: 236 }}>
+        <View style={{ padding: 18, gap: 10, minHeight: 250 }}>
           {current ? (
             <>
-              <Text
-                style={{
-                  fontFamily: font.ui,
-                  fontSize: 16,
-                  fontWeight: '600',
-                  letterSpacing: -0.2,
-                  color: t.text,
-                }}
-              >
-                {current.question}
-              </Text>
-              <Text style={{ fontFamily: font.ui, fontSize: 12, color: t.textSecondary, marginTop: -4 }}>
-                {current.hint}
-              </Text>
-              <Field
-                key={current.key}
-                autoFocus
-                multiline
-                value={answers[current.key]}
-                onChangeText={(v) => setAnswers((a) => ({ ...a, [current.key]: v }))}
-                placeholder={current.placeholder}
-                onKeyPress={(e: any) =>
-                  onKeyDown({
-                    key: e.nativeEvent?.key,
-                    metaKey: e.metaKey ?? e.nativeEvent?.metaKey,
-                    ctrlKey: e.ctrlKey ?? e.nativeEvent?.ctrlKey,
-                    preventDefault: () => e.preventDefault?.(),
-                  })
-                }
-                style={{ minHeight: 110, textAlignVertical: 'top', marginTop: 4 } as any}
-              />
+              {heading(current.question)}
+              {hint(current.hint)}
+              {current.options.length ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                  {current.options.map((o) => {
+                    const text = label(o, language);
+                    return (
+                      <Chip
+                        key={o.en}
+                        text={text}
+                        selected={picks[current.key].ticked.includes(text)}
+                        onToggle={() => toggleTick(current.key, text)}
+                      />
+                    );
+                  })}
+                </View>
+              ) : null}
+              {current.free ? (
+                <Field
+                  key={current.key}
+                  autoFocus={current.options.length === 0}
+                  value={picks[current.key].free}
+                  onChangeText={(v) => setPicks((p) => ({ ...p, [current.key]: { ...p[current.key], free: v } }))}
+                  placeholder={current.free}
+                  onKeyPress={(e: any) =>
+                    onKeyDown({
+                      key: e.nativeEvent?.key,
+                      metaKey: e.metaKey ?? e.nativeEvent?.metaKey,
+                      ctrlKey: e.ctrlKey ?? e.nativeEvent?.ctrlKey,
+                      preventDefault: () => e.preventDefault?.(),
+                    })
+                  }
+                  style={{ marginTop: 6 }}
+                />
+              ) : null}
             </>
           ) : (
             <>
-              <Text
-                style={{
-                  fontFamily: font.ui,
-                  fontSize: 16,
-                  fontWeight: '600',
-                  letterSpacing: -0.2,
-                  color: t.text,
-                }}
-              >
-                language and networks
-              </Text>
-              <Text style={{ fontFamily: font.ui, fontSize: 12, color: t.textSecondary, marginTop: -4 }}>
-                the instructions are written in the language your posts are in.
-              </Text>
+              {heading('language and networks')}
+              {hint('the instructions — and the options ahead — follow the language your posts are in.')}
               <View style={{ width: 220, marginTop: 6 }}>
                 <Segmented<Language>
                   options={LANGUAGES}
-                  value={answers.language}
-                  onChange={(language) => setAnswers((a) => ({ ...a, language }))}
+                  value={language}
+                  onChange={changeLanguage}
                   labels={LANGUAGE_LABEL}
                 />
               </View>
@@ -315,22 +483,21 @@ export function OnboardingSheet({
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {NETWORKS.map((n) => (
-                  <NetworkChip
+                  <Chip
                     key={n}
-                    network={n}
-                    selected={answers.networks.includes(n)}
+                    text={NETWORK_LABEL[n]}
+                    selected={networks.includes(n)}
                     onToggle={() => toggleNetwork(n)}
                   />
                 ))}
               </View>
               <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.textTertiary, marginTop: 6 }}>
-                saving writes instructions.md, AGENTS.md and CLAUDE.md into your posts folder.
+                every screen can be skipped. saving writes instructions.md, AGENTS.md and CLAUDE.md
+                into your posts folder.
               </Text>
             </>
           )}
-          {error ? (
-            <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: '#FF453A' }}>{error}</Text>
-          ) : null}
+          {error ? <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: '#FF453A' }}>{error}</Text> : null}
         </View>
 
         <View
@@ -365,8 +532,14 @@ export function OnboardingSheet({
               />
             ))}
           </View>
+          {!saving && !last ? (
+            <IconButton label="skip" onPress={skip} wide accessibilityLabel="skip this question" />
+          ) : null}
+          {!saving && step > 0 && !last ? (
+            <IconButton label="finish now" onPress={save} wide accessibilityLabel="save with what you have" />
+          ) : null}
           <PrimaryButton
-            label={saving ? 'writing…' : last ? 'save & write files' : 'next  ⌘↵'}
+            label={saving ? 'writing…' : last ? 'save' : 'next  ⌘↵'}
             onPress={saving ? () => {} : next}
           />
         </View>
