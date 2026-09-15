@@ -16,6 +16,13 @@ const CSS = `
   [data-drag="true"] { -webkit-app-region: drag; }
   [data-nodrag="true"] { -webkit-app-region: no-drag; }
 
+  /* Horizontal strips (toolbar quick links) fade out on the side that has more. */
+  [data-fade="left"]  { -webkit-mask-image: linear-gradient(to right, transparent, #000 22px); }
+  [data-fade="right"] { -webkit-mask-image: linear-gradient(to left,  transparent, #000 22px); }
+  [data-fade="both"]  {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 22px, #000 calc(100% - 22px), transparent);
+  }
+
   input, textarea { -webkit-app-region: no-drag; }
   textarea, input { outline: none; }
   ::selection { background: rgba(0,122,255,0.28); }
