@@ -1,0 +1,75 @@
+# Builds both dmgs and publishes a GitHub release when a version tag is pushed.
+#
+#   1. bump "version" in package.json and app.json, add the CHANGELOG section
+#   2. git tag v1.4.0 && git push origin main --tags
+#
+# The release body is the matching section of CHANGELOG.md, so write the
+# changelog first. Builds are ad-hoc signed (build/afterPack.js), not
+# notarised: that needs a paid apple developer account.
+name: release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: check the tag matches package.json
+        run: |
+          pkg="v$(node -p "require('./package.json').version")"
+          if [ "$pkg" != "${GITHUB_REF_NAME}" ]; then
+            echo "tag ${GITHUB_REF_NAME} but package.json says ${pkg}"; exit 1
+          fi
+
+      - run: npm run dist
+        env:
+          # electron-builder tries to publish when it sees a token; we do it ourselves.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: release notes from CHANGELOG.md
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          {
+            echo "**download:** \`post-manager-${v}-arm64.dmg\` for apple silicon, \`post-manager-${v}-x64.dmg\` for intel."
+            echo
+            # the section for this version, without its heading
+            awk -v v="$v" '
+              $0 ~ "^## \\[" v "\\]" { on=1; next }
+              on && /^## \[/ { exit }
+              on && !/^\[.*\]: http/ { print }
+            ' CHANGELOG.md
+            echo
+            echo "## first launch"
+            echo
+            echo "these builds are ad-hoc signed but not notarised (that needs a paid apple developer account), so macOS will say *\"apple could not verify post manager is free of malware\"*. drag the app to Applications, then run:"
+            echo
+            echo '```sh'
+            echo "xattr -dr com.apple.quarantine '/Applications/post manager.app'"
+            echo '```'
+            echo
+            echo "prefer the gui? try to open it once, then go to **system settings → privacy & security** and click **open anyway**."
+          } > notes.md
+          cat notes.md
+
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "post manager ${GITHUB_REF_NAME}" \
+            --notes-file notes.md \
+            release/*.dmg

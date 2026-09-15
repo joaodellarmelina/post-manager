@@ -13,6 +13,8 @@
   <a href="https://github.com/joaodellarmelina/post-manager/releases/latest">
     <b>download latest version here</b>
   </a>
+  &nbsp;·&nbsp;
+  <a href="CHANGELOG.md">changelog</a>
 </p>
 
 <p align="center">
@@ -24,6 +26,24 @@
 your posts are just files. no database, no account, no sync, no lock-in.
 open the same folder in obsidian, ia writer or vim — the app picks up your
 edits instantly. delete the app and your work is still there.
+
+and because they are files, an agent can work in the same folder as you: the
+app writes `AGENTS.md` and `CLAUDE.md` describing the format, and a short
+onboarding writes `instructions.md` describing *you* — so "draft three reels
+for next week" is a one-line prompt, not a briefing.
+
+## what it does
+
+- **calendar and list** of every post, filtered by network, status, format and tag
+- **one network per post** — instagram, linkedin, youtube or tiktok — with the
+  formats each one actually publishes
+- **markdown captions, rendered**, with a **script** next to them for video formats
+- **copy as plain text** for a teleprompter or the network's caption field
+- **reference links** on each post, and **quick links** to your tools in the toolbar
+- **onboarding → `instructions.md`**, plus `AGENTS.md` / `CLAUDE.md`, so any agent
+  that opens the folder knows who you are and how the files work
+- keyboard shortcuts for everything, dark mode, and a folder watcher that picks
+  up edits made anywhere else
 
 ## what a post looks like
 
@@ -239,6 +259,12 @@ a few things worth knowing if you're poking around:
   break under `file://`. a custom standard scheme fixes it and works inside `app.asar`.
 - **`main` in package.json is `index.ts`** (metro's entry). electron uses
   `build.extraMetadata.main` to point at `electron/main.js` in the packaged app.
+- **`npm run dev` hot-reloads `src/` only.** anything under `electron/` runs in the
+  main process and needs the dev command restarted to pick up changes.
+- **releases are built by github actions.** bump the version in `package.json` and
+  `app.json`, add the changelog section, push a `vX.Y.Z` tag, and
+  `.github/workflows/release.yml` builds both dmgs and publishes the release with
+  that section as its notes.
 - **only `gray-matter` is a runtime dependency.** expo, react and react-native are
   devDependencies since the bundle ships compiled — that takes the .app from 504 MB to 288 MB.
 - **the theme comes from one `ThemeContext` at the root.** calling `useColorScheme()`
