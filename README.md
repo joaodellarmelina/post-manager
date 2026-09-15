@@ -144,8 +144,10 @@ read AGENTS.md and instructions.md, then draft three reels for next week about
 the second pillar. one file each, status draft.
 ```
 
-the app picks the new files up instantly. redo the onboarding any time with
-`⌘⇧I` (file → onboarding…); none of the questions is required.
+the app picks the new files up instantly. the `profile` button in the toolbar
+(or `⌘⇧P`) shows `instructions.md` rendered, with `edit answers` to redo the
+onboarding from your previous answers — or `⌘⇧I` goes straight there. none of
+the questions is required.
 
 ## shortcuts
 
@@ -164,7 +166,8 @@ the app picks the new files up instantly. redo the onboarding any time with
 | `⌘⌫` | move post to trash |
 | `⌘⇧O` | open the folder in finder |
 | `⌘⇧L` | edit the quick links |
-| `⌘⇧I` | onboarding — your creator profile |
+| `⌘⇧P` | read your creator profile |
+| `⌘⇧I` | redo the onboarding |
 
 press `⌘/` or click the `⌘` button in the toolbar to see them in the app.
 

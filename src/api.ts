@@ -50,7 +50,7 @@ export interface QuickLink {
 type MenuAction =
   | 'new' | 'save' | 'close-panel' | 'today' | 'delete'
   | 'search' | 'prev-month' | 'next-month' | 'toggle-sidebar' | 'shortcuts' | 'toggle-view'
-  | 'edit-links' | 'onboarding';
+  | 'edit-links' | 'onboarding' | 'profile';
 
 interface VaultBridge {
   list(): Promise<Post[]>;
@@ -61,7 +61,7 @@ interface VaultBridge {
   getDir(): Promise<string>;
   listLinks(): Promise<QuickLink[]>;
   editLinks(): Promise<boolean>;
-  readInstructions(): Promise<{ answers: Answers | null; error?: string }>;
+  readInstructions(): Promise<{ answers: Answers | null; body?: string; error?: string }>;
   writeInstructions(answers: Answers): Promise<Answers>;
   openInstructions(): Promise<boolean>;
   closeWindow(): void;

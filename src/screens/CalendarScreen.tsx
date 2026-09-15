@@ -5,6 +5,7 @@ import { EditorPanel } from '../components/EditorPanel';
 import { MonthGrid } from '../components/MonthGrid';
 import { EMPTY_ANSWERS, OnboardingSheet } from '../components/OnboardingSheet';
 import { PostList } from '../components/PostList';
+import { ProfileSheet } from '../components/ProfileSheet';
 import { QuickLinks } from '../components/QuickLinks';
 import { ShortcutsSheet } from '../components/ShortcutsSheet';
 import { NO_FILTERS, Sidebar, type Filters } from '../components/Sidebar';
@@ -70,6 +71,7 @@ export function CalendarScreen() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   // null = closed; otherwise the answers the sheet opens with.
   const [onboarding, setOnboarding] = useState<Answers | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const onboardingChecked = useRef(false);
   // Bumped only when a different post is opened. The editor panel is keyed on
@@ -98,12 +100,15 @@ export function CalendarScreen() {
     const { answers, error } = await vault.readInstructions();
     if (error) setNotice(error);
     const seen = Array.from(new Set(posts.map((p) => p.network)));
+    setShowProfile(false);
     setOnboarding(answers ?? { ...EMPTY_ANSWERS, networks: seen });
   }, [posts]);
 
   const saveOnboarding = useCallback(async (answers: Answers) => {
     await vault.writeInstructions(answers);
     setOnboarding(null);
+    // Show the result right away: this is what an agent will read.
+    setShowProfile(true);
     setNotice('instructions.md, AGENTS.md and CLAUDE.md written to your posts folder');
   }, []);
 
@@ -208,6 +213,10 @@ export function CalendarScreen() {
       closeOnboarding();
       return true;
     }
+    if (showProfile) {
+      setShowProfile(false);
+      return true;
+    }
     if (showShortcuts) {
       setShowShortcuts(false);
       return true;
@@ -218,7 +227,7 @@ export function CalendarScreen() {
       return true;
     }
     return false;
-  }, [onboarding, closeOnboarding, showShortcuts, draftPost, selected]);
+  }, [onboarding, closeOnboarding, showProfile, showShortcuts, draftPost, selected]);
 
   const goToday = useCallback(() => {
     const d = new Date();
@@ -278,6 +287,9 @@ export function CalendarScreen() {
           break;
         case 'onboarding':
           openOnboarding();
+          break;
+        case 'profile':
+          setShowProfile((v) => !v);
           break;
       }
     });
@@ -371,6 +383,12 @@ export function CalendarScreen() {
         </View>
         <IconButton label="finder" onPress={() => vault.reveal()} wide accessibilityLabel="open folder in finder" />
         <IconButton
+          label="profile"
+          onPress={() => setShowProfile((v) => !v)}
+          wide
+          accessibilityLabel="your creator profile (instructions.md)"
+        />
+        <IconButton
           label="⌘"
           onPress={() => setShowShortcuts((v) => !v)}
           accessibilityLabel="keyboard shortcuts"
@@ -444,6 +462,9 @@ export function CalendarScreen() {
       </View>
 
       {showShortcuts ? <ShortcutsSheet onClose={() => setShowShortcuts(false)} /> : null}
+      {showProfile ? (
+        <ProfileSheet onClose={() => setShowProfile(false)} onRedo={openOnboarding} />
+      ) : null}
       {onboarding ? (
         <OnboardingSheet initial={onboarding} onSave={saveOnboarding} onClose={closeOnboarding} />
       ) : null}

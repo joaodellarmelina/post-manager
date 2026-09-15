@@ -51,9 +51,10 @@ async function readAnswers() {
   }
   try {
     const parsed = matter(raw, PARSE_OPTIONS);
-    return { answers: normalizeAnswers(parsed.data) };
+    return { answers: normalizeAnswers(parsed.data), body: parsed.content.replace(/^\n+/, '') };
   } catch (err) {
-    return { answers: null, error: `instructions.md has invalid YAML: ${err.message}` };
+    // Still hand the raw text over: the viewer can show it even if the YAML is off.
+    return { answers: null, body: raw, error: `instructions.md has invalid YAML: ${err.message}` };
   }
 }
 
