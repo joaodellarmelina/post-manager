@@ -26,6 +26,21 @@ export interface Post {
 
 export type PostDraft = Omit<Post, 'filename' | 'error'>;
 
+export type Language = 'pt' | 'en';
+
+/** The creator profile the onboarding collects; frontmatter of `instructions.md`. */
+export interface Answers {
+  language: Language;
+  networks: Network[];
+  who: string;
+  audience: string;
+  pillars: string;
+  voice: string;
+  goal: string;
+  avoid: string;
+  references: string;
+}
+
 /** A toolbar shortcut to an external tool, from `links.md` in the vault. */
 export interface QuickLink {
   label: string;
@@ -35,7 +50,7 @@ export interface QuickLink {
 type MenuAction =
   | 'new' | 'save' | 'close-panel' | 'today' | 'delete'
   | 'search' | 'prev-month' | 'next-month' | 'toggle-sidebar' | 'shortcuts' | 'toggle-view'
-  | 'edit-links';
+  | 'edit-links' | 'onboarding';
 
 interface VaultBridge {
   list(): Promise<Post[]>;
@@ -46,6 +61,9 @@ interface VaultBridge {
   getDir(): Promise<string>;
   listLinks(): Promise<QuickLink[]>;
   editLinks(): Promise<boolean>;
+  readInstructions(): Promise<{ answers: Answers | null; error?: string }>;
+  writeInstructions(answers: Answers): Promise<Answers>;
+  openInstructions(): Promise<boolean>;
   closeWindow(): void;
   onChanged(cb: () => void): () => void;
   onMenu(cb: (action: MenuAction) => void): () => void;
@@ -75,6 +93,11 @@ const missing: VaultBridge = {
   getDir: async () => '',
   listLinks: async () => [],
   editLinks: async () => false,
+  readInstructions: async () => ({ answers: null }),
+  writeInstructions: async () => {
+    throw new Error('bridge unavailable');
+  },
+  openInstructions: async () => false,
   closeWindow: () => {},
   onChanged: () => () => {},
   onMenu: () => () => {},

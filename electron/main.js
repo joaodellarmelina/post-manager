@@ -8,6 +8,7 @@ const { pathToFileURL } = require('node:url');
 
 const posts = require('./posts');
 const links = require('./links');
+const instructions = require('./instructions');
 const { buildMenu } = require('./menu');
 
 const isDev = process.env.ELECTRON_DEV === '1';
@@ -140,6 +141,18 @@ function registerIpc() {
     // Recreate the template if it was deleted, then hand it to the default editor.
     await links.seedIfMissing();
     await shell.openPath(links.LINKS_PATH);
+    return true;
+  });
+
+  ipcMain.handle('instructions:read', () => instructions.readAnswers());
+  ipcMain.handle('instructions:write', async (_e, answers) => {
+    selfWriteUntil = Date.now() + 700;
+    const saved = await instructions.writeAll(answers ?? {});
+    selfWriteUntil = Date.now() + 700;
+    return saved;
+  });
+  ipcMain.handle('instructions:open', async () => {
+    await shell.openPath(instructions.INSTRUCTIONS);
     return true;
   });
 

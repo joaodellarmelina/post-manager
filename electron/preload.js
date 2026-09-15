@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld('vault', {
   /** Toolbar quick links, read from `links.md` in the vault. */
   listLinks: () => ipcRenderer.invoke('links:list'),
   editLinks: () => ipcRenderer.invoke('links:edit'),
+  /** Creator profile: instructions.md and the derived AGENTS.md / CLAUDE.md. */
+  readInstructions: () => ipcRenderer.invoke('instructions:read'),
+  writeInstructions: (answers) => ipcRenderer.invoke('instructions:write', answers),
+  openInstructions: () => ipcRenderer.invoke('instructions:open'),
   closeWindow: () => ipcRenderer.send('window:close'),
 
   /** Fired when the folder changes on disk, including from other apps. */

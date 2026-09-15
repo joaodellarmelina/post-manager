@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Text, TextInput, View } from 'react-native';
-import { hasBridge, vault, type Post, type PostDraft } from '../api';
+import { hasBridge, vault, type Answers, type Post, type PostDraft } from '../api';
 import { EditorPanel } from '../components/EditorPanel';
 import { MonthGrid } from '../components/MonthGrid';
+import { EMPTY_ANSWERS, OnboardingSheet } from '../components/OnboardingSheet';
 import { PostList } from '../components/PostList';
 import { QuickLinks } from '../components/QuickLinks';
 import { ShortcutsSheet } from '../components/ShortcutsSheet';
@@ -24,6 +25,9 @@ const VIEW_LABELS = { calendar: 'calendar', list: 'list' };
 type ViewMode = (typeof VIEWS)[number];
 
 const VIEW_KEY = 'post-manager.view';
+/** Set when the first-launch onboarding is closed unsaved, so it does not nag. */
+const ONBOARDING_DISMISSED_KEY = 'post-manager.onboarding-dismissed';
+const NOTICE_MS = 4000;
 
 /** Remembering the last view is a per-machine convenience, not vault data. */
 function storedView(): ViewMode {
@@ -64,6 +68,10 @@ export function CalendarScreen() {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  // null = closed; otherwise the answers the sheet opens with.
+  const [onboarding, setOnboarding] = useState<Answers | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const onboardingChecked = useRef(false);
   // Bumped only when a different post is opened. The editor panel is keyed on
   // this rather than on the filename, which changes when a save renames the
   // file and would otherwise remount the panel mid-edit.
@@ -84,6 +92,54 @@ export function CalendarScreen() {
   const registerSave = useCallback((fn: () => void) => {
     saveRef.current = fn;
   }, []);
+
+  /** Opens the onboarding with what is on disk, or a guess from the posts. */
+  const openOnboarding = useCallback(async () => {
+    const { answers, error } = await vault.readInstructions();
+    if (error) setNotice(error);
+    const seen = Array.from(new Set(posts.map((p) => p.network)));
+    setOnboarding(answers ?? { ...EMPTY_ANSWERS, networks: seen });
+  }, [posts]);
+
+  const saveOnboarding = useCallback(async (answers: Answers) => {
+    await vault.writeInstructions(answers);
+    setOnboarding(null);
+    setNotice('instructions.md, AGENTS.md and CLAUDE.md written to your posts folder');
+  }, []);
+
+  const closeOnboarding = useCallback(() => {
+    setOnboarding(null);
+    try {
+      localStorage.setItem(ONBOARDING_DISMISSED_KEY, '1');
+    } catch {
+      // Without storage it simply asks again next launch.
+    }
+  }, []);
+
+  // First launch: no instructions.md yet and never dismissed → offer the onboarding.
+  useEffect(() => {
+    if (!hasBridge || loading || onboardingChecked.current) return;
+    onboardingChecked.current = true;
+    let dismissed = false;
+    try {
+      dismissed = localStorage.getItem(ONBOARDING_DISMISSED_KEY) === '1';
+    } catch {
+      // Fine: treat as not dismissed.
+    }
+    if (dismissed) return;
+    vault
+      .readInstructions()
+      .then(({ answers, error }) => {
+        if (!answers && !error) openOnboarding();
+      })
+      .catch(() => {});
+  }, [loading, openOnboarding]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const id = setTimeout(() => setNotice(null), NOTICE_MS);
+    return () => clearTimeout(id);
+  }, [notice]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -148,6 +204,10 @@ export function CalendarScreen() {
 
   /** Closes the topmost dismissable surface; false when there was none. */
   const closePanel = useCallback(() => {
+    if (onboarding) {
+      closeOnboarding();
+      return true;
+    }
     if (showShortcuts) {
       setShowShortcuts(false);
       return true;
@@ -158,7 +218,7 @@ export function CalendarScreen() {
       return true;
     }
     return false;
-  }, [showShortcuts, draftPost, selected]);
+  }, [onboarding, closeOnboarding, showShortcuts, draftPost, selected]);
 
   const goToday = useCallback(() => {
     const d = new Date();
@@ -216,9 +276,15 @@ export function CalendarScreen() {
         case 'edit-links':
           editLinks();
           break;
+        case 'onboarding':
+          openOnboarding();
+          break;
       }
     });
-  }, [createAt, closePanel, handleDelete, goToday, shiftMonth, selected, view, changeView, editLinks]);
+  }, [
+    createAt, closePanel, handleDelete, goToday, shiftMonth, selected, view, changeView, editLinks,
+    openOnboarding,
+  ]);
 
   // Esc closes the panel — the macOS idiom for a transient inspector.
   useEffect(() => {
@@ -320,6 +386,20 @@ export function CalendarScreen() {
           </Text>
         </View>
       ) : null}
+      {notice ? (
+        <View style={{ padding: 8, backgroundColor: t.accentSoft }}>
+          <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
+            {notice}
+            <Text
+              accessibilityRole="button"
+              onPress={() => vault.openInstructions()}
+              style={{ color: t.accentStrong, textDecorationLine: 'underline' }}
+            >
+              {'  '}open instructions.md
+            </Text>
+          </Text>
+        </View>
+      ) : null}
       {error ? (
         <View style={{ padding: 8, backgroundColor: 'rgba(255,69,58,0.16)' }}>
           <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
@@ -364,6 +444,9 @@ export function CalendarScreen() {
       </View>
 
       {showShortcuts ? <ShortcutsSheet onClose={() => setShowShortcuts(false)} /> : null}
+      {onboarding ? (
+        <OnboardingSheet initial={onboarding} onSave={saveOnboarding} onClose={closeOnboarding} />
+      ) : null}
     </View>
   );
 }

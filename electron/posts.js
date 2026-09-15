@@ -9,7 +9,7 @@ const { NETWORKS, DEFAULT_NETWORK, FORMATS, defaultFormat } = require('./network
 const VAULT_DIR = path.join(os.homedir(), 'Documents', 'post-manager');
 
 /** Files that share the folder but are not posts. */
-const RESERVED = new Set(['links.md']);
+const RESERVED = new Set(['links.md', 'instructions.md', 'AGENTS.md', 'CLAUDE.md']);
 
 const STATUSES = ['draft', 'ready', 'published'];
 
@@ -336,4 +336,5 @@ module.exports = {
   readOne,
   savePost,
   seedIfEmpty,
+  atomicWrite,
 };

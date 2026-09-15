@@ -37,6 +37,7 @@ function buildMenu(getWindow, vaultDir) {
           click: () => shell.openPath(vaultDir),
         },
         { label: 'Edit Quick Links…', accelerator: 'CmdOrCtrl+Shift+L', click: send('edit-links') },
+        { label: 'Onboarding…', accelerator: 'CmdOrCtrl+Shift+I', click: send('onboarding') },
         { type: 'separator' },
         {
           label: 'Move to Trash',

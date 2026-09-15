@@ -123,6 +123,30 @@ the file is created with a few examples on first launch. click the pencil in
 the toolbar (or `⌘⇧L`) to open it in your editor; save, and the toolbar updates.
 only `http(s)` links are picked up, so notes around the list are fine.
 
+## agents friendly
+
+the folder is meant to be handed to an agent — codex, claude code, whatever you
+use — with no explanation. the first launch asks eight direct questions (who you
+are, who you write for, your pillars, your voice, your goal, what to avoid, your
+references, language and networks) and writes three files next to your posts:
+
+- **`instructions.md`** — your creator profile as a prompt, in the language you
+  post in. the answers sit in its frontmatter, so redoing the onboarding starts
+  from them.
+- **`AGENTS.md`** and **`CLAUDE.md`** — the same short contract for the folder:
+  file naming, the frontmatter, formats per network, the `## script` separator,
+  and the rules (one post per file, new posts are drafts, never invent facts).
+
+then, from a terminal in `~/Documents/post-manager`:
+
+```
+read AGENTS.md and instructions.md, then draft three reels for next week about
+the second pillar. one file each, status draft.
+```
+
+the app picks the new files up instantly. redo the onboarding any time with
+`⌘⇧I` (file → onboarding…); none of the questions is required.
+
 ## shortcuts
 
 | | |
@@ -140,6 +164,7 @@ only `http(s)` links are picked up, so notes around the list are fine.
 | `⌘⌫` | move post to trash |
 | `⌘⇧O` | open the folder in finder |
 | `⌘⇧L` | edit the quick links |
+| `⌘⇧I` | onboarding — your creator profile |
 
 press `⌘/` or click the `⌘` button in the toolbar to see them in the app.
 
@@ -199,6 +224,7 @@ electron/main.js      window, app:// protocol, menu, folder watcher
 electron/preload.js   contextBridge → window.vault (the only exposed surface)
 electron/posts.js     fs/promises + gray-matter
 electron/links.js     links.md → toolbar quick links
+electron/instructions.js  onboarding answers → instructions.md, AGENTS.md, CLAUDE.md
 src/                  expo / react-native-web ui
 ```
 
