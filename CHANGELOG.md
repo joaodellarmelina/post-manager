@@ -5,6 +5,17 @@ all notable changes to post manager. the format follows
 [semver](https://semver.org/). each release ships two dmgs — `arm64` for apple
 silicon, `x64` for intel — on the [releases page](https://github.com/joaodellarmelina/post-manager/releases).
 
+## [1.5.1] — 2026-09-15
+
+### fixed
+
+- the agent launcher assumed zsh. it now hands off to your own shell (`$SHELL`,
+  as login + interactive), so a PATH set up in `.bashrc` or fish's `config.fish`
+  is honoured too.
+- when your shell takes too long to answer — heavy rc files, nvm — the picker no
+  longer marks every agent as "not installed"; it offers them and says it
+  couldn't check.
+
 ## [1.5.0] — 2026-09-15
 
 the loop closes: the folder describes itself and you, and the toolbar now opens
@@ -126,6 +137,7 @@ status, type, tags and caption. the folder is watched, so edits from any other
 app show up instantly. superseded by 1.1.0 — the packaged app at this tag would
 not open on macOS; the source is fine.
 
+[1.5.1]: https://github.com/joaodellarmelina/post-manager/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.2.0...v1.3.0

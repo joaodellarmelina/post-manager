@@ -189,7 +189,8 @@ the app picks the new files up instantly — that's the whole loop.
 
 under the hood it writes a small `.command` file and opens it with Terminal.app
 (or a launch configuration for warp, if you have it) — no automation permissions,
-no apple events. it is a terminal rather than the claude or codex desktop app
+no apple events. the file hands off to your own shell as a login shell, so
+whatever `.zshrc`, `.bashrc` or `config.fish` puts on your PATH is there. it is a terminal rather than the claude or codex desktop app
 because neither exposes an "open this folder" url; the CLIs are also where those
 context files are read automatically. agents that aren't installed show the
 install command instead. the `profile` button in the toolbar

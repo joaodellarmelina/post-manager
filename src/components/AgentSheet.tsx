@@ -58,19 +58,24 @@ function AgentRow({
   label,
   note,
   path,
+  checked,
   install,
   onPress,
 }: {
   label: string;
   note: string;
+  /** Resolved path; null = not found; undefined = still checking. */
   path: string | null | undefined;
+  /** False when the shell could not be asked — then null does not mean missing. */
+  checked: boolean;
   install: string;
   onPress: () => void;
 }) {
   const t = useTheme();
   const [hover, setHover] = useState(false);
   const [copied, setCopied] = useState(false);
-  const missing = path === null;
+  const missing = checked && path === null;
+  const unverified = !checked && path === null;
 
   const copyInstall = () => {
     navigator.clipboard?.writeText(install).then(() => {
@@ -112,7 +117,11 @@ function AgentRow({
           {label}
         </Text>
         <Text numberOfLines={1} style={{ fontFamily: missing ? font.mono : font.ui, fontSize: 11, color: t.textTertiary }}>
-          {missing ? (copied ? 'copied — paste it in a terminal' : `not installed — ${install}`) : `${note}  ·  ${path ?? 'checking…'}`}
+          {missing
+            ? copied ? 'copied — paste it in a terminal' : `not installed — ${install}`
+            : unverified
+              ? `${note}  ·  couldn't check your shell — try it`
+              : `${note}  ·  ${path ?? 'checking…'}`}
         </Text>
       </View>
       <Text style={{ fontFamily: font.ui, fontSize: 12, color: hover && !missing ? t.accentStrong : t.textTertiary }}>
@@ -150,7 +159,11 @@ export function AgentSheet({
         // Warp remembered but gone since → back to Terminal.
         if (!d.terminals.includes('warp')) setTerminal('terminal');
       })
-      .catch(() => alive && setDetection({ agents: { claude: null, codex: null, gemini: null }, terminals: ['terminal'] }));
+      .catch(
+        () =>
+          alive &&
+          setDetection({ agents: { claude: null, codex: null, gemini: null }, terminals: ['terminal'], checked: false, shell: '' }),
+      );
     return () => {
       alive = false;
     };
@@ -179,7 +192,7 @@ export function AgentSheet({
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         const last = (stored(AGENT_KEY) as AgentId | null) ?? 'claude';
-        if (detection?.agents[last] !== null) launch(last);
+        if (!(detection?.checked && detection.agents[last] === null)) launch(last);
       }
     };
     document.addEventListener('keydown', onKey);
@@ -276,6 +289,7 @@ export function AgentSheet({
               note={a.note}
               install={a.install}
               path={detection ? detection.agents[a.id] : undefined}
+              checked={detection?.checked ?? false}
               onPress={() => (busy ? null : launch(a.id))}
             />
           ))}

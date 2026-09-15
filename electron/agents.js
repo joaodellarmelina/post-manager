@@ -51,42 +51,57 @@ function shellQuote(s) {
 
 let detected = null;
 
+/** The user's shell — the one whose rc files put `claude` on the PATH. */
+function userShell() {
+  return process.env.SHELL || '/bin/zsh';
+}
+
 /**
  * GUI apps do not inherit the shell's PATH (`~/.local/bin`, homebrew…), so ask
  * the user's login shell where the binaries are. Cached: nothing here changes
  * while the app is open, and the shell takes a moment to start.
+ *
+ * `checked` is false when the shell did not answer in time (heavy rc files,
+ * nvm…). The UI then offers every agent rather than calling them missing —
+ * the terminal itself will have the same PATH and may well find them.
  */
 function detect() {
   if (detected) return detected;
   detected = new Promise((resolve) => {
-    const result = { agents: {}, terminals: ['terminal'] };
+    const result = { agents: {}, terminals: ['terminal'], checked: false, shell: userShell() };
     for (const a of AGENTS) result.agents[a.id] = null;
     if (fs.existsSync(WARP_APP)) result.terminals.push('warp');
 
-    const sh = process.env.SHELL || '/bin/zsh';
-    const script = AGENTS.map((a) => `command -v ${a.bin} || echo ''`).join('; ');
-    execFile(sh, ['-lic', script], { timeout: 4000 }, (_err, stdout) => {
+    // A marker line so greetings printed by the rc files can be skipped.
+    const marker = '__pm_agents__';
+    const script = [`echo ${marker}`, ...AGENTS.map((a) => `command -v ${a.bin} || echo ''`)].join('; ');
+    execFile(userShell(), ['-lic', script], { timeout: 6000 }, (err, stdout) => {
       const lines = String(stdout ?? '').split('\n').map((l) => l.trim());
-      // Interactive shells may print greetings; keep only lines that look like paths.
-      const paths = lines.filter((l) => l === '' || l.startsWith('/'));
+      const start = lines.indexOf(marker);
+      if (err || start === -1) return resolve(result);
+      const paths = lines.slice(start + 1, start + 1 + AGENTS.length);
       AGENTS.forEach((a, i) => {
         const p = paths[i] ?? '';
-        result.agents[a.id] = p && p.startsWith('/') ? p : null;
+        result.agents[a.id] = p.startsWith('/') ? p : null;
       });
+      result.checked = true;
       resolve(result);
     });
   });
   return detected;
 }
 
+/**
+ * The .command Terminal runs. A /bin/sh wrapper hands off to the user's own
+ * shell as login + interactive, so PATH is whatever their rc files make it —
+ * zsh, bash or fish alike; `||`, `;` and `exec` are common to all three.
+ */
 function scriptFor(agent, prompt) {
   const cmd = [agent.bin, ...agent.args(prompt).map(shellQuote)].join(' ');
+  const inner = `cd ${shellQuote(VAULT_DIR)} || exit 1; clear; exec ${cmd}`;
   return [
-    // Login + interactive, so PATH is the one the user sees in their own terminal.
-    '#!/bin/zsh -li',
-    `cd ${shellQuote(VAULT_DIR)} || exit 1`,
-    'clear',
-    `exec ${cmd}`,
+    '#!/bin/sh',
+    `exec ${shellQuote(userShell())} -lic ${shellQuote(inner)}`,
     '',
   ].join('\n');
 }

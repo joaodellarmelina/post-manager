@@ -48,6 +48,9 @@ export type TerminalId = 'terminal' | 'warp';
 export interface AgentDetection {
   agents: Record<AgentId, string | null>;
   terminals: TerminalId[];
+  /** False when the shell did not answer: treat every agent as possibly there. */
+  checked: boolean;
+  shell: string;
 }
 
 export interface AgentLaunch {
@@ -119,7 +122,12 @@ const missing: VaultBridge = {
     throw new Error('bridge unavailable');
   },
   openInstructions: async () => false,
-  detectAgents: async () => ({ agents: { claude: null, codex: null, gemini: null }, terminals: ['terminal'] }),
+  detectAgents: async () => ({
+    agents: { claude: null, codex: null, gemini: null },
+    terminals: ['terminal'],
+    checked: false,
+    shell: '',
+  }),
   launchAgent: async () => {
     throw new Error('bridge unavailable');
   },
