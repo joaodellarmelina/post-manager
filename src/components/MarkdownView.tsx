@@ -83,7 +83,9 @@ function renderInline(tokens: Token[] | undefined, t: Theme, raw?: string): Reac
           <Text key={inlineKey(i)}>
             {(tk as Tokens.Text).tokens
               ? renderInline((tk as Tokens.Text).tokens, t, (tk as Tokens.Text).text)
-              : ((tk as Tokens.Text).text ?? tk.raw)}
+              : // A newline inside a paragraph is a soft break in markdown: it
+                // renders as a space, not as a line break (that is what `br` is for).
+                ((tk as Tokens.Text).text ?? tk.raw).replace(/\n/g, ' ')}
           </Text>
         );
     }

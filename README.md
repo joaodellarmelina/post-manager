@@ -94,6 +94,10 @@ naturally in any editor. in the app, switch between `caption` and `script`
 above the text; `copy` sends whichever you're looking at to the clipboard as
 plain text, ready for a teleprompter.
 
+<p align="center">
+  <img src="docs/editor.png" width="800" alt="a reels post open on its script">
+</p>
+
 ## two ways to look at the plan
 
 the calendar is for spotting gaps in a month. the list is for working through
@@ -145,6 +149,10 @@ remove — that writes the list back; `open file` there gets you the markdown if
 you'd rather. edit it anywhere else and the toolbar follows. only `http(s)`
 links are picked up, so notes above the list are kept as they are.
 
+<p align="center">
+  <img src="docs/links.png" width="800" alt="quick links editor">
+</p>
+
 ## agents friendly
 
 the folder is meant to be handed to an agent — codex, claude code, whatever you
@@ -159,6 +167,10 @@ references, language and networks) and writes three files next to your posts:
   file naming, the frontmatter, formats per network, the `## script` separator,
   and the rules (one post per file, new posts are drafts, never invent facts).
 
+<p align="center">
+  <img src="docs/onboarding.png" width="800" alt="onboarding — options to tick, every screen skippable">
+</p>
+
 then, from a terminal in `~/Documents/post-manager`:
 
 ```
@@ -170,6 +182,10 @@ the app picks the new files up instantly. the `profile` button in the toolbar
 (or `⌘⇧P`) shows `instructions.md` rendered, with `edit answers` to redo the
 onboarding from your previous answers — or `⌘⇧I` goes straight there. none of
 the questions is required.
+
+<p align="center">
+  <img src="docs/profile.png" width="800" alt="instructions.md rendered in the app">
+</p>
 
 ## shortcuts
 
