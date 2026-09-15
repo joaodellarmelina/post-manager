@@ -5,7 +5,7 @@ import { longDate } from '../dates';
 import {
   font, radius, STATUS_COLOR, STATUS_LABEL, STATUSES, TYPE_LABEL, TYPES, useTheme,
 } from '../theme';
-import { MarkdownView } from './MarkdownView';
+import { MarkdownView, markdownToPlainText } from './MarkdownView';
 import { Field, IconButton, Label, Segmented } from './primitives';
 
 const CAPTION_LIMIT = 2200;
@@ -25,6 +25,66 @@ function isRealDate(iso: string) {
 }
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error' | 'invalid';
+
+const COPIED_MS = 1500;
+
+/**
+ * Copies the caption as the preview reads it — plain text, no markup — for
+ * pasting into a teleprompter or the caption field of whatever network.
+ */
+function CopyCaptionButton({ body }: { body: string }) {
+  const t = useTheme();
+  const [hover, setHover] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const empty = !body.trim();
+
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+
+  const copy = useCallback(async () => {
+    if (empty) return;
+    try {
+      await navigator.clipboard.writeText(markdownToPlainText(body));
+      setCopied(true);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), COPIED_MS);
+    } catch {
+      // Clipboard denied: nothing sensible to show inline; the button stays as is.
+    }
+  }, [body, empty]);
+
+  return (
+    <Pressable
+      onPress={copy}
+      onHoverIn={() => setHover(true)}
+      onHoverOut={() => setHover(false)}
+      disabled={empty}
+      accessibilityRole="button"
+      accessibilityLabel="copy caption as plain text"
+      hitSlop={4}
+      style={{
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: radius.sm,
+        backgroundColor: hover && !empty ? t.hover : 'transparent',
+        opacity: empty ? 0.4 : 1,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: font.ui,
+          fontSize: 11,
+          fontWeight: '500',
+          color: copied ? t.accentStrong : t.textSecondary,
+        }}
+      >
+        {copied ? 'copied' : 'copy'}
+      </Text>
+    </Pressable>
+  );
+}
 
 function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) => void }) {
   const t = useTheme();
@@ -423,7 +483,12 @@ export function EditorPanel({
               marginBottom: 6,
             }}
           >
-            <Label>caption</Label>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Label>caption</Label>
+              <View style={{ marginBottom: 5 }}>
+                <CopyCaptionButton body={draft.body} />
+              </View>
+            </View>
             <View style={{ width: 168 }}>
               <Segmented
                 options={BODY_MODES}

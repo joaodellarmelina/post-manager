@@ -256,3 +256,94 @@ export function MarkdownView({ source }: { source: string }) {
 
   return <View style={{ gap: 8 }}>{blocks}</View>;
 }
+
+/** Inline tokens flattened to the text the preview shows, markup dropped. */
+function inlineText(tokens: Token[] | undefined, raw?: string): string {
+  if (!tokens || tokens.length === 0) return raw ?? '';
+  return tokens
+    .map((tk) => {
+      switch (tk.type) {
+        case 'strong':
+        case 'em':
+        case 'del':
+        case 'link':
+          return inlineText((tk as Tokens.Strong).tokens, (tk as Tokens.Strong).text);
+        case 'codespan':
+          return (tk as Tokens.Codespan).text;
+        case 'br':
+          return '\n';
+        case 'escape':
+          return (tk as Tokens.Escape).text;
+        case 'html':
+          return (tk as Tokens.HTML).raw;
+        default: {
+          const text = tk as Tokens.Text;
+          return text.tokens ? inlineText(text.tokens, text.text) : (text.text ?? tk.raw);
+        }
+      }
+    })
+    .join('');
+}
+
+function blocksText(tokens: Token[]): string[] {
+  const out: string[] = [];
+
+  tokens.forEach((tk) => {
+    switch (tk.type) {
+      case 'space':
+        break;
+      case 'heading':
+        out.push(inlineText((tk as Tokens.Heading).tokens, (tk as Tokens.Heading).text));
+        break;
+      case 'paragraph':
+        out.push(inlineText((tk as Tokens.Paragraph).tokens, (tk as Tokens.Paragraph).text));
+        break;
+      case 'list': {
+        const list = tk as Tokens.List;
+        out.push(
+          list.items
+            .map((item, n) => {
+              const marker = list.ordered ? `${(Number(list.start) || 1) + n}.` : '•';
+              const body = item.task
+                ? `${item.checked ? '☑' : '☐'} ${inlineText(item.tokens, item.text)}`
+                : blocksText(item.tokens as Token[]).join('\n');
+              return `${marker} ${body}`;
+            })
+            .join('\n'),
+        );
+        break;
+      }
+      case 'blockquote':
+        out.push(blocksText((tk as Tokens.Blockquote).tokens).join('\n\n'));
+        break;
+      case 'code':
+        out.push((tk as Tokens.Code).text);
+        break;
+      case 'hr':
+        break;
+      case 'html':
+        out.push((tk as Tokens.HTML).raw.trim());
+        break;
+      default: {
+        const any = tk as Tokens.Text;
+        if (any.tokens || any.text) out.push(inlineText(any.tokens, any.text));
+      }
+    }
+  });
+
+  return out;
+}
+
+/**
+ * The caption as the preview reads it, for pasting somewhere that doesn't
+ * speak markdown — a teleprompter, instagram's caption field. Same token walk
+ * as the renderer, so what you copy is what you saw.
+ */
+export function markdownToPlainText(source: string): string {
+  if (!source.trim()) return '';
+  try {
+    return blocksText(marked.lexer(source)).join('\n\n').trim();
+  } catch {
+    return source.trim();
+  }
+}
