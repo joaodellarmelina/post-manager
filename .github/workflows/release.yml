@@ -35,9 +35,10 @@ jobs:
             echo "tag ${GITHUB_REF_NAME} but package.json says ${pkg}"; exit 1
           fi
 
-      - run: npm run dist
+      # electron-builder wants to publish by itself when it runs in CI on a tag;
+      # we publish with gh below so the notes come from the changelog.
+      - run: npm run dist -- --publish never
         env:
-          # electron-builder tries to publish when it sees a token; we do it ourselves.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       - name: release notes from CHANGELOG.md
