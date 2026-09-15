@@ -4,6 +4,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const matter = require('gray-matter');
+const { NETWORKS, DEFAULT_NETWORK, FORMATS, defaultFormat } = require('./networks');
 
 const VAULT_DIR = path.join(os.homedir(), 'Documents', 'post-manager');
 
@@ -11,10 +12,16 @@ const VAULT_DIR = path.join(os.homedir(), 'Documents', 'post-manager');
 const RESERVED = new Set(['links.md']);
 
 const STATUSES = ['draft', 'ready', 'published'];
-const TYPES = ['feed', 'reels', 'carousel', 'stories'];
 
 // Files written before the app switched to English used the Portuguese value.
 const LEGACY_TYPES = { carrossel: 'carousel' };
+
+/**
+ * The script sits in the same file as the caption, after this heading, so a
+ * post stays one markdown file that reads naturally anywhere else.
+ */
+const SCRIPT_HEADING = '## script';
+const SCRIPT_RE = /^\s*## script\s*$/im;
 
 /**
  * gray-matter caches the file object *before* parsing it, and only when no
@@ -67,9 +74,31 @@ function oneOf(value, allowed, fallback) {
   return allowed.includes(value) ? value : fallback;
 }
 
-function normalizeType(value) {
+function normalizeNetwork(value) {
+  return oneOf(value, NETWORKS, DEFAULT_NETWORK);
+}
+
+/** A format only makes sense for its network; anything else falls back. */
+function normalizeType(value, network) {
   const mapped = LEGACY_TYPES[value] ?? value;
-  return oneOf(mapped, TYPES, 'feed');
+  return oneOf(mapped, FORMATS[network], defaultFormat(network));
+}
+
+/** Splits the body at the first `## script` line into caption and script. */
+function splitScript(content) {
+  const m = SCRIPT_RE.exec(content);
+  if (!m) return { body: content.replace(/^\n+/, ''), script: '' };
+  return {
+    body: content.slice(0, m.index).replace(/^\n+/, '').replace(/\s+$/, ''),
+    script: content.slice(m.index + m[0].length).replace(/^\n+/, ''),
+  };
+}
+
+function joinScript(body, script) {
+  const b = (body ?? '').replace(/\s+$/, '');
+  const s = (script ?? '').trim();
+  if (!s) return body ?? '';
+  return `${b}\n\n${SCRIPT_HEADING}\n\n${s}\n`;
 }
 
 /** Reference links: a post can carry any number of them. */
@@ -112,16 +141,21 @@ function normalize(filename, parsed) {
   }
   time = typeof time === 'string' && TIME_RE.test(time) ? time : '12:00';
 
+  const network = normalizeNetwork(d.network);
+  const { body, script } = splitScript(parsed.content);
+
   return {
     filename,
     title: typeof d.title === 'string' && d.title.trim() ? d.title : titleFromFilename(filename),
     date,
     time,
     status: oneOf(d.status, STATUSES, 'draft'),
-    type: normalizeType(d.type),
+    network,
+    type: normalizeType(d.type, network),
     tags,
     links: normalizeLinks(d.links),
-    body: parsed.content.replace(/^\n+/, ''),
+    body,
+    script,
     error: null,
   };
 }
@@ -153,10 +187,12 @@ async function readOne(filename) {
       date: dateFromFilename(filename) ?? todayISO(),
       time: '12:00',
       status: 'draft',
-      type: 'feed',
+      network: DEFAULT_NETWORK,
+      type: defaultFormat(DEFAULT_NETWORK),
       tags: [],
       links: [],
       body: raw,
+      script: '',
       error: `invalid YAML: ${err.message}`,
     };
   }
@@ -179,10 +215,12 @@ async function listPosts() {
         date: dateFromFilename(name) ?? todayISO(),
         time: '12:00',
         status: 'draft',
-        type: 'feed',
+        network: DEFAULT_NETWORK,
+        type: defaultFormat(DEFAULT_NETWORK),
         tags: [],
         links: [],
         body: '',
+        script: '',
         error: err.message,
       })),
     ),
@@ -213,14 +251,16 @@ async function uniqueFilename(date, title, currentFilename) {
 }
 
 function serialize(post) {
+  const network = normalizeNetwork(post.network);
   return matter.stringify(
-    post.body ?? '',
+    joinScript(post.body, post.script),
     {
       title: post.title ?? '',
       date: post.date,
       time: post.time,
       status: oneOf(post.status, STATUSES, 'draft'),
-      type: normalizeType(post.type),
+      network,
+      type: normalizeType(post.type, network),
       tags: Array.isArray(post.tags) ? post.tags : [],
       links: normalizeLinks(post.links),
     },
@@ -272,6 +312,7 @@ async function seedIfEmpty() {
     date: todayISO(),
     time: '18:00',
     status: 'draft',
+    network: 'instagram',
     type: 'feed',
     tags: ['#example'],
     links: ['https://github.com/joaodellarmelina/post-manager'],
@@ -285,7 +326,8 @@ async function seedIfEmpty() {
 module.exports = {
   VAULT_DIR,
   STATUSES,
-  TYPES,
+  NETWORKS,
+  FORMATS,
   slugify,
   todayISO,
   resolveInVault,

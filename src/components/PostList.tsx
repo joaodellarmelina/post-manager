@@ -3,7 +3,8 @@ import { ScrollView, Text, View } from 'react-native';
 import { Pressable } from 'react-native';
 import type { Post } from '../api';
 import { monthLabel, todayISO, WEEKDAYS } from '../dates';
-import { font, radius, STATUS_COLOR, STATUS_LABEL, TYPE_LABEL, useTheme } from '../theme';
+import { FORMAT_LABEL, NETWORK_LABEL } from '../networks';
+import { font, radius, STATUS_COLOR, STATUS_LABEL, useTheme } from '../theme';
 
 /** "2026-09-15" -> { y, m, d, weekday } without going through Date parsing rules. */
 function parseISO(iso: string) {
@@ -118,13 +119,18 @@ function Row({
 
       <View
         style={{
-          width: 66,
+          width: 120,
           flexShrink: 0,
-          alignItems: 'flex-end',
+          flexDirection: 'row',
+          justifyContent: 'flex-end',
+          gap: 8,
         }}
       >
-        <Text style={{ fontFamily: font.ui, fontSize: 11, color: t.textSecondary }}>
-          {TYPE_LABEL[post.type]}
+        <Text style={{ fontFamily: font.ui, fontSize: 11, color: t.textTertiary }}>
+          {NETWORK_LABEL[post.network]}
+        </Text>
+        <Text style={{ fontFamily: font.ui, fontSize: 11, color: t.textSecondary, minWidth: 48, textAlign: 'right' }}>
+          {FORMAT_LABEL[post.type]}
         </Text>
       </View>
     </Pressable>

@@ -1,13 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import type { Post } from '../api';
-import { font, radius, STATUS_COLOR, STATUS_LABEL, STATUSES, TYPE_LABEL, TYPES, useTheme } from '../theme';
+import type { Network, Post } from '../api';
+import { ALL_FORMATS, FORMAT_LABEL, FORMATS, NETWORK_LABEL, NETWORKS } from '../networks';
+import { font, radius, STATUS_COLOR, STATUS_LABEL, STATUSES, useTheme } from '../theme';
 
 export interface Filters {
+  network: string | null;
   status: string | null;
   type: string | null;
   tag: string | null;
 }
+
+export const NO_FILTERS: Filters = { network: null, status: null, type: null, tag: null };
 
 function Row({
   label,
@@ -96,16 +100,25 @@ export function Sidebar({
   const t = useTheme();
 
   const counts = useMemo(() => {
+    const network: Record<string, number> = {};
     const status: Record<string, number> = {};
     const type: Record<string, number> = {};
     const tag: Record<string, number> = {};
     for (const p of posts) {
+      network[p.network] = (network[p.network] ?? 0) + 1;
       status[p.status] = (status[p.status] ?? 0) + 1;
-      type[p.type] = (type[p.type] ?? 0) + 1;
+      // Formats are counted within the chosen network, so "video" under
+      // youtube does not include tiktok videos.
+      if (!filters.network || p.network === filters.network) {
+        type[p.type] = (type[p.type] ?? 0) + 1;
+      }
       for (const tg of p.tags) tag[tg] = (tag[tg] ?? 0) + 1;
     }
-    return { status, type, tag };
-  }, [posts]);
+    return { network, status, type, tag };
+  }, [posts, filters.network]);
+
+  // With a network chosen, only its formats make sense; otherwise every format once.
+  const formats = filters.network ? FORMATS[filters.network as Network] : ALL_FORMATS;
 
   const tags = useMemo(
     () => Object.keys(counts.tag).sort((a, b) => counts.tag[b] - counts.tag[a] || a.localeCompare(b)),
@@ -114,6 +127,13 @@ export function Sidebar({
 
   const toggle = (key: keyof Filters, value: string) =>
     onChange({ ...filters, [key]: filters[key] === value ? null : value });
+
+  const toggleNetwork = (value: Network) => {
+    const network = filters.network === value ? null : value;
+    // Drop a format filter the new network cannot have.
+    const type = network && filters.type && !FORMATS[network].includes(filters.type as any) ? null : filters.type;
+    onChange({ ...filters, network, type });
+  };
 
   return (
     <View
@@ -129,9 +149,20 @@ export function Sidebar({
         <Row
           label="all posts"
           count={posts.length}
-          active={!filters.status && !filters.type && !filters.tag}
-          onPress={() => onChange({ status: null, type: null, tag: null })}
+          active={!filters.network && !filters.status && !filters.type && !filters.tag}
+          onPress={() => onChange(NO_FILTERS)}
         />
+
+        <Section title="network" />
+        {NETWORKS.map((n) => (
+          <Row
+            key={n}
+            label={NETWORK_LABEL[n]}
+            count={counts.network[n] ?? 0}
+            active={filters.network === n}
+            onPress={() => toggleNetwork(n)}
+          />
+        ))}
 
         <Section title="status" />
         {STATUSES.map((s) => (
@@ -146,10 +177,10 @@ export function Sidebar({
         ))}
 
         <Section title="format" />
-        {TYPES.map((ty) => (
+        {formats.map((ty) => (
           <Row
             key={ty}
-            label={TYPE_LABEL[ty]}
+            label={FORMAT_LABEL[ty]}
             count={counts.type[ty] ?? 0}
             active={filters.type === ty}
             onPress={() => toggle('type', ty)}

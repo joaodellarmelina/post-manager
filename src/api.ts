@@ -1,5 +1,9 @@
 export type Status = 'draft' | 'ready' | 'published';
-export type PostType = 'feed' | 'reels' | 'carousel' | 'stories';
+export type Network = 'instagram' | 'linkedin' | 'youtube' | 'tiktok';
+/** Every format any network publishes; which ones apply is in src/networks.ts. */
+export type PostType =
+  | 'feed' | 'reels' | 'carousel' | 'stories'
+  | 'post' | 'article' | 'video' | 'short' | 'live';
 
 export interface Post {
   filename: string;
@@ -7,11 +11,16 @@ export interface Post {
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
   status: Status;
+  /** One network per post; the format list depends on it. */
+  network: Network;
   type: PostType;
   tags: string[];
   /** Reference links; a post can carry any number of them. */
   links: string[];
+  /** The caption (or description, on youtube). */
   body: string;
+  /** What gets read on camera; stored after a `## script` heading in the file. */
+  script: string;
   error: string | null;
 }
 

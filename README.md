@@ -35,17 +35,44 @@ title: 'reels: shipping v2'
 date: '2026-09-10'
 time: '18:00'
 status: draft        # draft | ready | published
-type: reels          # feed | reels | carousel | stories
+network: instagram   # instagram | linkedin | youtube | tiktok
+type: reels          # depends on the network, see below
 tags: ['#dev', '#tech']
 links:               # reference links, as many as you want
   - 'https://github.com/joaodellarmelina/post-manager'
   - 'https://www.figma.com/file/v2-launch'
 ---
 the new version is **out today**. three things changed and why.
+
+## script
+
+hey — so v2 is out. let me show you the three things that changed…
 ```
 
 change the date or title and the file gets renamed for you — no duplicates.
 break the yaml and the app flags that one post in red instead of falling over.
+a post without `network:` is treated as instagram, which is what the app used to assume.
+
+## one post, one network
+
+each post targets a single network, and the format list follows it:
+
+| network | formats | has a script |
+|---|---|---|
+| instagram | feed · reels · carousel · stories | reels, stories |
+| linkedin | post · article · carousel · video | video |
+| youtube | video · short · live | all |
+| tiktok | video · carousel · live | video, live |
+
+the sidebar filters by network, and the format filter narrows to that network's
+formats. on youtube the post title is the video title (with the 100 character
+count in view) and your tags double as the video's tags.
+
+video formats carry a **script** next to the caption — the thing you read on
+camera. it lives in the same file, after a `## script` heading, so it reads
+naturally in any editor. in the app, switch between `caption` and `script`
+above the text; `copy` sends whichever you're looking at to the clipboard as
+plain text, ready for a teleprompter.
 
 ## two ways to look at the plan
 
@@ -66,8 +93,8 @@ clicking a row opens the same editor.
   <img src="docs/preview.png" width="800" alt="markdown preview">
 </p>
 
-captions support headings, bold, italic, strikethrough, code, links, lists and
-quotes, with the 2,200 character instagram limit in view.
+captions and scripts support headings, bold, italic, strikethrough, code, links,
+lists and quotes, with the 2,200 character instagram limit in view for captions.
 
 a post with a caption **opens rendered** — reading it is the common case, and
 markup is noise when you just want to reread your copy. switch to `write` to

@@ -1,16 +1,21 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
-import type { Post, PostDraft, PostType, Status } from '../api';
+import type { Network, Post, PostDraft, PostType, Status } from '../api';
 import { longDate } from '../dates';
 import {
-  font, radius, STATUS_COLOR, STATUS_LABEL, STATUSES, TYPE_LABEL, TYPES, useTheme,
-} from '../theme';
+  defaultFormat, FORMAT_LABEL, FORMATS, hasScript, NETWORK_LABEL, NETWORKS, YOUTUBE_TITLE_LIMIT,
+} from '../networks';
+import { font, radius, STATUS_COLOR, STATUS_LABEL, STATUSES, useTheme } from '../theme';
 import { MarkdownView, markdownToPlainText } from './MarkdownView';
 import { Field, IconButton, Label, Segmented } from './primitives';
 
 const CAPTION_LIMIT = 2200;
 const BODY_MODES = ['preview', 'write'] as const;
 const BODY_MODE_LABELS = { preview: 'preview', write: 'write' };
+/** The two texts a video post carries; `body` is the caption. */
+const BODY_FIELDS = ['body', 'script'] as const;
+const BODY_FIELD_LABELS = { body: 'caption', script: 'script' };
+type BodyField = (typeof BODY_FIELDS)[number];
 const AUTOSAVE_MS = 800;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -32,7 +37,7 @@ const COPIED_MS = 1500;
  * Copies the caption as the preview reads it — plain text, no markup — for
  * pasting into a teleprompter or the caption field of whatever network.
  */
-function CopyCaptionButton({ body }: { body: string }) {
+function CopyCaptionButton({ body, what }: { body: string; what: string }) {
   const t = useTheme();
   const [hover, setHover] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -62,7 +67,7 @@ function CopyCaptionButton({ body }: { body: string }) {
       onHoverOut={() => setHover(false)}
       disabled={empty}
       accessibilityRole="button"
-      accessibilityLabel="copy caption as plain text"
+      accessibilityLabel={`copy ${what} as plain text`}
       hitSlop={4}
       style={{
         paddingHorizontal: 6,
@@ -259,8 +264,13 @@ export function EditorPanel({
   // with nothing to read yet, which is exactly when the editor is wanted.
   // Decided once per opened post: the parent keys this panel on the post it
   // opened, not on the filename, which changes under us on save and rename.
+  // A video post opens on the script when that is the only text it has —
+  // the caption of a reel is often written last.
+  const [bodyField, setBodyField] = useState<BodyField>(() =>
+    !post.body.trim() && post.script.trim() ? 'script' : 'body',
+  );
   const [bodyMode, setBodyMode] = useState<(typeof BODY_MODES)[number]>(() =>
-    post.body.trim() ? 'preview' : 'write',
+    (post.body.trim() || post.script.trim()) ? 'preview' : 'write',
   );
   const [message, setMessage] = useState<string | null>(null);
 
@@ -276,7 +286,11 @@ export function EditorPanel({
     filenameRef.current = post.filename || null;
     setState('idle');
     setMessage(null);
-  }, [post.filename, post.title, post.date, post.time, post.status, post.type, post.body]);
+  }, [
+    post.filename, post.title, post.date, post.time, post.status,
+    post.network, post.type, post.body, post.script,
+  ]);
+
 
 
   const flush = useCallback(async () => {
@@ -316,6 +330,14 @@ export function EditorPanel({
     [flush],
   );
 
+  const changeNetwork = useCallback(
+    (network: Network) => {
+      const type = FORMATS[network].includes(draft.type) ? draft.type : defaultFormat(network);
+      update({ network, type });
+    },
+    [draft.type, update],
+  );
+
   // Save any pending edit when the panel unmounts.
   useEffect(
     () => () => {
@@ -331,6 +353,13 @@ export function EditorPanel({
   );
 
   const over = draft.body.length > CAPTION_LIMIT;
+  const isYoutube = draft.network === 'youtube';
+  const titleOver = isYoutube && draft.title.length > YOUTUBE_TITLE_LIMIT;
+  // Scripted formats get the toggle; so does any post that already has a
+  // script on disk, whatever its format — never hide text that exists.
+  const scripted = hasScript(draft.network, draft.type) || draft.script.trim().length > 0;
+  const field: BodyField = scripted ? bodyField : 'body';
+  const text = draft[field];
 
   const statusText =
     state === 'saving' ? 'saving…'
@@ -402,11 +431,26 @@ export function EditorPanel({
         ) : null}
 
         <View>
-          <Label>title</Label>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Label>{isYoutube ? 'video title' : 'title'}</Label>
+            {isYoutube ? (
+              <Text
+                style={{
+                  fontFamily: font.ui,
+                  fontSize: 11,
+                  color: titleOver ? '#FF453A' : t.textTertiary,
+                  marginBottom: 5,
+                }}
+              >
+                {draft.title.length} / {YOUTUBE_TITLE_LIMIT}
+              </Text>
+            ) : null}
+          </View>
           <Field
             value={draft.title}
             onChangeText={(v) => update({ title: v })}
-            placeholder="post title"
+            placeholder={isYoutube ? 'video title' : 'post title'}
+            invalid={titleOver}
           />
         </View>
 
@@ -455,18 +499,33 @@ export function EditorPanel({
         </View>
 
         <View>
+          <Label>network</Label>
+          <Segmented<Network>
+            options={NETWORKS}
+            value={draft.network}
+            onChange={changeNetwork}
+            labels={NETWORK_LABEL}
+          />
+        </View>
+
+        <View>
           <Label>format</Label>
           <Segmented<PostType>
-            options={TYPES}
+            options={FORMATS[draft.network]}
             value={draft.type}
             onChange={(v) => update({ type: v })}
-            labels={TYPE_LABEL}
+            labels={FORMAT_LABEL}
           />
         </View>
 
         <View>
           <Label>tags</Label>
           <TagInput tags={draft.tags} onChange={(tags) => update({ tags })} />
+          {isYoutube ? (
+            <Text style={{ fontFamily: font.ui, fontSize: 11, color: t.textTertiary, marginTop: 5 }}>
+              these double as the video's tags — paste them without the #
+            </Text>
+          ) : null}
         </View>
 
         <View>
@@ -484,12 +543,18 @@ export function EditorPanel({
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Label>caption</Label>
+              {scripted ? (
+                <View style={{ width: 150, marginBottom: 5 }}>
+                  <Segmented options={BODY_FIELDS} value={field} onChange={setBodyField} labels={BODY_FIELD_LABELS} />
+                </View>
+              ) : (
+                <Label>{isYoutube ? 'description' : 'caption'}</Label>
+              )}
               <View style={{ marginBottom: 5 }}>
-                <CopyCaptionButton body={draft.body} />
+                <CopyCaptionButton body={text} what={BODY_FIELD_LABELS[field]} />
               </View>
             </View>
-            <View style={{ width: 168 }}>
+            <View style={{ width: 150 }}>
               <Segmented
                 options={BODY_MODES}
                 value={bodyMode}
@@ -501,9 +566,14 @@ export function EditorPanel({
 
           {bodyMode === 'write' ? (
             <Field
-              value={draft.body}
-              onChangeText={(v) => update({ body: v })}
-              placeholder="write the caption, copy or script in markdown…"
+              key={field}
+              value={text}
+              onChangeText={(v) => update({ [field]: v })}
+              placeholder={
+                field === 'script'
+                  ? 'write the script in markdown — copy sends it to the teleprompter…'
+                  : 'write the caption in markdown…'
+              }
               multiline
               mono
               style={{ minHeight: 260, textAlignVertical: 'top' } as any}
@@ -520,7 +590,7 @@ export function EditorPanel({
                 paddingVertical: 9,
               }}
             >
-              <MarkdownView source={draft.body} />
+              <MarkdownView source={text} />
             </View>
           )}
 
@@ -528,12 +598,12 @@ export function EditorPanel({
             style={{
               fontFamily: font.ui,
               fontSize: 11,
-              color: over ? '#FF453A' : t.textTertiary,
+              color: field === 'body' && over ? '#FF453A' : t.textTertiary,
               alignSelf: 'flex-end',
               marginTop: 5,
             }}
           >
-            {draft.body.length} / {CAPTION_LIMIT}
+            {field === 'body' ? `${draft.body.length} / ${CAPTION_LIMIT}` : `${draft.script.length} chars`}
           </Text>
         </View>
 

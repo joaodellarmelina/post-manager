@@ -6,7 +6,7 @@ import { MonthGrid } from '../components/MonthGrid';
 import { PostList } from '../components/PostList';
 import { QuickLinks } from '../components/QuickLinks';
 import { ShortcutsSheet } from '../components/ShortcutsSheet';
-import { Sidebar, type Filters } from '../components/Sidebar';
+import { NO_FILTERS, Sidebar, type Filters } from '../components/Sidebar';
 import { Field, GithubButton, IconButton, PrimaryButton, Segmented } from '../components/primitives';
 import { addMonths, monthLabel, todayISO } from '../dates';
 import { usePosts } from '../hooks/usePosts';
@@ -41,10 +41,12 @@ function emptyDraft(date: string): PostDraft {
     date,
     time: '18:00',
     status: 'draft',
+    network: 'instagram',
     type: 'feed',
     tags: [],
     links: [],
     body: '',
+    script: '',
   };
 }
 
@@ -59,7 +61,7 @@ export function CalendarScreen() {
   const [selected, setSelected] = useState<Post | null>(null);
   const [draftPost, setDraftPost] = useState<Post | null>(null);
   const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<Filters>({ status: null, type: null, tag: null });
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(false);
   // Bumped only when a different post is opened. The editor panel is keyed on
@@ -86,10 +88,19 @@ export function CalendarScreen() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return posts.filter((p) => {
+      if (filters.network && p.network !== filters.network) return false;
       if (filters.status && p.status !== filters.status) return false;
       if (filters.type && p.type !== filters.type) return false;
       if (filters.tag && !p.tags.includes(filters.tag)) return false;
-      if (q && !(p.title.toLowerCase().includes(q) || p.body.toLowerCase().includes(q))) return false;
+      if (
+        q &&
+        !(
+          p.title.toLowerCase().includes(q) ||
+          p.body.toLowerCase().includes(q) ||
+          p.script.toLowerCase().includes(q)
+        )
+      )
+        return false;
       return true;
     });
   }, [posts, filters, query]);

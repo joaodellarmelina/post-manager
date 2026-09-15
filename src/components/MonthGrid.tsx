@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { Post } from '../api';
 import { monthGrid, todayISO, WEEKDAYS } from '../dates';
-import { font, radius, STATUS_COLOR, TYPE_LABEL, useTheme } from '../theme';
+import { FORMAT_LABEL, NETWORK_LABEL } from '../networks';
+import { font, radius, STATUS_COLOR, useTheme } from '../theme';
 
 const MAX_CHIPS = 3;
 
@@ -26,7 +27,7 @@ function PostChip({
       onHoverIn={() => setHover(true)}
       onHoverOut={() => setHover(false)}
       accessibilityRole="button"
-      accessibilityLabel={`${post.time} ${post.title}, ${TYPE_LABEL[post.type]}`}
+      accessibilityLabel={`${post.time} ${post.title}, ${NETWORK_LABEL[post.network]} ${FORMAT_LABEL[post.type]}`}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
