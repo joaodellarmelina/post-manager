@@ -2,21 +2,32 @@ import React, { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
 import { font, radius, useTheme, type Theme } from '../theme';
 import { NO_DRAG } from '../webStyles';
+import { Icon, type IconName } from './Icon';
 
-/** A quiet toolbar button that only reveals its background on hover. */
+/**
+ * A quiet toolbar button that only reveals its background on hover. Takes a
+ * text label, an icon, or both; an icon-only button must say what it is
+ * through `accessibilityLabel`.
+ */
 export function IconButton({
   label,
+  icon,
   onPress,
   accessibilityLabel,
   wide,
+  active,
 }: {
-  label: string;
+  label?: string;
+  icon?: IconName;
   onPress: () => void;
   accessibilityLabel?: string;
   wide?: boolean;
+  /** Drawn as pressed — for a toggle that is currently on. */
+  active?: boolean;
 }) {
   const t = useTheme();
   const [hover, setHover] = useState(false);
+  const lit = hover || active;
   return (
     <Pressable
       dataSet={NO_DRAG}
@@ -25,17 +36,21 @@ export function IconButton({
       onHoverOut={() => setHover(false)}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={active === undefined ? undefined : { selected: active }}
       style={{
         minWidth: wide ? undefined : 28,
         height: 28,
         paddingHorizontal: wide ? 10 : 4,
         borderRadius: radius.sm,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: hover ? t.hover : 'transparent',
+        gap: 5,
+        backgroundColor: active ? t.active : hover ? t.hover : 'transparent',
       }}
     >
-      <Text style={{ color: t.text, fontFamily: font.ui, fontSize: 13 }}>{label}</Text>
+      {icon ? <Icon name={icon} color={lit || label ? t.text : t.textSecondary} /> : null}
+      {label ? <Text style={{ color: t.text, fontFamily: font.ui, fontSize: 13 }}>{label}</Text> : null}
     </Pressable>
   );
 }
@@ -115,12 +130,15 @@ export function Segmented<T extends string>({
   onChange,
   labels,
   colors,
+  icons,
 }: {
   options: readonly T[];
   value: T;
   onChange: (v: T) => void;
   labels: Record<string, string>;
   colors?: Record<string, string>;
+  /** Icon-only segments; `labels` then serve as the accessible names. */
+  icons?: Record<string, IconName>;
 }) {
   const t = useTheme();
   return (
@@ -141,9 +159,11 @@ export function Segmented<T extends string>({
             key={opt}
             onPress={() => onChange(opt)}
             accessibilityRole="radio"
+            accessibilityLabel={icons ? labels[opt] ?? opt : undefined}
             accessibilityState={{ selected }}
             style={{
               flex: 1,
+              minWidth: icons ? 34 : undefined,
               height: 24,
               flexDirection: 'row',
               gap: 5,
@@ -166,17 +186,21 @@ export function Segmented<T extends string>({
                 style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors[opt] }}
               />
             ) : null}
-            <Text
-              numberOfLines={1}
-              style={{
-                fontFamily: font.ui,
-                fontSize: 12,
-                color: selected ? t.text : t.textSecondary,
-                fontWeight: selected ? '500' : '400',
-              }}
-            >
-              {labels[opt] ?? opt}
-            </Text>
+            {icons ? (
+              <Icon name={icons[opt]} color={selected ? t.text : t.textSecondary} />
+            ) : (
+              <Text
+                numberOfLines={1}
+                style={{
+                  fontFamily: font.ui,
+                  fontSize: 12,
+                  color: selected ? t.text : t.textSecondary,
+                  fontWeight: selected ? '500' : '400',
+                }}
+              >
+                {labels[opt] ?? opt}
+              </Text>
+            )}
           </Pressable>
         );
       })}
@@ -194,6 +218,7 @@ export function Field({
   autoFocus,
   inputRef,
   onKeyPress,
+  onBlur,
   invalid,
 }: {
   value: string;
@@ -205,6 +230,7 @@ export function Field({
   autoFocus?: boolean;
   inputRef?: React.Ref<TextInput>;
   onKeyPress?: (e: any) => void;
+  onBlur?: () => void;
   invalid?: boolean;
 }) {
   const t = useTheme();
@@ -220,7 +246,10 @@ export function Field({
       autoFocus={autoFocus}
       onKeyPress={onKeyPress}
       onFocus={() => setFocus(true)}
-      onBlur={() => setFocus(false)}
+      onBlur={() => {
+        setFocus(false);
+        onBlur?.();
+      }}
       style={[
         {
           fontFamily: mono ? font.mono : font.ui,

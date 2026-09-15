@@ -212,7 +212,7 @@ the questions is required.
 | `Esc` | close the editor panel |
 | `⌘T` | jump to today |
 | `⌘←` `⌘→` | previous / next month |
-| `⌘F` | search |
+| `⌘F` | search — opens the box; it stays open while there is a query |
 | `⌘L` | switch calendar / list |
 | `⌘1` | toggle filters |
 | `⌘/` | this shortcuts guide |

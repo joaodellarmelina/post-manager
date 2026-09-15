@@ -5,6 +5,21 @@ all notable changes to post manager. the format follows
 [semver](https://semver.org/). each release ships two dmgs — `arm64` for apple
 silicon, `x64` for intel — on the [releases page](https://github.com/joaodellarmelina/post-manager/releases).
 
+## [1.6.0] — 2026-09-15
+
+### changed
+
+- **the toolbar breathes.** the view switch, finder, search and profile are icons
+  now; `✦ agent` keeps its label. the search box is a magnifier until you click
+  it or press `⌘F`, and stays open while there is a query. the month label is a
+  little narrower.
+
+### fixed
+
+- in calendar view the quick links had no room at the default window size and
+  simply disappeared. they now get ~330px at 1180 wide and stay visible down to
+  the minimum window width.
+
 ## [1.5.1] — 2026-09-15
 
 ### fixed
@@ -137,6 +152,7 @@ status, type, tags and caption. the folder is watched, so edits from any other
 app show up instantly. superseded by 1.1.0 — the packaged app at this tag would
 not open on macOS; the source is fine.
 
+[1.6.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/joaodellarmelina/post-manager/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.3.0...v1.4.0

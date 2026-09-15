@@ -78,12 +78,12 @@ const shot = async (name) => {
 // Make sure nothing is open, calendar view, on september 2026 (today).
 await escape(); await escape();
 await theme(false);
-await clickText('calendar');
+await clickLabel('calendar view');
 await sleep(300);
 
 await shot('calendar-light');
 
-await clickText('list');
+await clickLabel('list view');
 await shot('list');
 
 // Editor: open the reels post in the list, caption preview.
@@ -107,13 +107,13 @@ await sleep(300);
 
 // Dark: calendar + list.
 await theme(true);
-await clickText('calendar');
+await clickLabel('calendar view');
 await shot('calendar-dark');
-await clickText('list');
+await clickLabel('list view');
 await shot('list-dark');
 
 await theme(false);
-await clickText('calendar');
+await clickLabel('calendar view');
 await sleep(300);
 
 // Shortcuts sheet.

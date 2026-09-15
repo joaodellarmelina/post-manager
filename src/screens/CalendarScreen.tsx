@@ -24,7 +24,8 @@ const TRAFFIC_LIGHTS = 78;
 const REPO_URL = 'https://github.com/joaodellarmelina/post-manager';
 
 const VIEWS = ['calendar', 'list'] as const;
-const VIEW_LABELS = { calendar: 'calendar', list: 'list' };
+const VIEW_LABELS = { calendar: 'calendar view', list: 'list view' };
+const VIEW_ICONS = { calendar: 'calendar', list: 'list' } as const;
 type ViewMode = (typeof VIEWS)[number];
 
 const VIEW_KEY = 'post-manager.view';
@@ -70,6 +71,9 @@ export function CalendarScreen() {
   const [selected, setSelected] = useState<Post | null>(null);
   const [draftPost, setDraftPost] = useState<Post | null>(null);
   const [query, setQuery] = useState('');
+  // The search box is a magnifier until it is needed; it stays open while
+  // there is a query, since that query is filtering what is on screen.
+  const [searchOpen, setSearchOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -96,6 +100,17 @@ export function CalendarScreen() {
   }, []);
 
   const searchRef = useRef<TextInput>(null);
+  const openSearch = useCallback(() => {
+    setSearchOpen(true);
+    // The field mounts on the next render; focus it once it exists.
+    setTimeout(() => searchRef.current?.focus(), 0);
+  }, []);
+  const closeSearchIfEmpty = useCallback(() => {
+    if (!query.trim()) {
+      setQuery('');
+      setSearchOpen(false);
+    }
+  }, [query]);
   const saveRef = useRef<(() => void) | null>(null);
   const registerSave = useCallback((fn: () => void) => {
     saveRef.current = fn;
@@ -296,7 +311,7 @@ export function CalendarScreen() {
           shiftMonth(1);
           break;
         case 'search':
-          searchRef.current?.focus();
+          openSearch();
           break;
         case 'toggle-sidebar':
           setShowSidebar((v) => !v);
@@ -323,7 +338,7 @@ export function CalendarScreen() {
     });
   }, [
     createAt, closePanel, handleDelete, goToday, shiftMonth, selected, view, changeView, editLinks,
-    openOnboarding, openAgent,
+    openOnboarding, openAgent, openSearch,
   ]);
 
   // Esc closes the panel — the macOS idiom for a transient inspector.
@@ -355,12 +370,13 @@ export function CalendarScreen() {
       >
         <IconButton label="☰" onPress={() => setShowSidebar((v) => !v)} accessibilityLabel="toggle filters" />
 
-        <View dataSet={NO_DRAG} style={{ width: 158 }}>
+        <View dataSet={NO_DRAG} style={{ width: 76 }}>
           <Segmented<ViewMode>
             options={VIEWS}
             value={view}
             onChange={changeView}
             labels={VIEW_LABELS}
+            icons={VIEW_ICONS}
           />
         </View>
 
@@ -374,7 +390,7 @@ export function CalendarScreen() {
                 fontWeight: '600',
                 letterSpacing: -0.2,
                 color: t.text,
-                minWidth: 150,
+                minWidth: 132,
                 textAlign: 'center',
               }}
             >
@@ -406,15 +422,31 @@ export function CalendarScreen() {
           <QuickLinks links={quickLinks} onEdit={editLinks} />
         </View>
 
-        <View dataSet={NO_DRAG} style={{ width: 190 }}>
-          <Field inputRef={searchRef} value={query} onChangeText={setQuery} placeholder="search" />
-        </View>
-        <IconButton label="finder" onPress={() => vault.reveal()} wide accessibilityLabel="open folder in finder" />
-        <IconButton label="✦ agent" onPress={openAgent} wide accessibilityLabel="open an agent in the posts folder" />
+        {searchOpen ? (
+          <View dataSet={NO_DRAG} style={{ width: 190 }}>
+            <Field
+              inputRef={searchRef}
+              value={query}
+              onChangeText={setQuery}
+              placeholder="search"
+              autoFocus
+              onBlur={closeSearchIfEmpty}
+              onKeyPress={(e: any) => {
+                if (e.nativeEvent?.key === 'Escape') {
+                  if (query.trim()) searchRef.current?.blur();
+                  else closeSearchIfEmpty();
+                }
+              }}
+            />
+          </View>
+        ) : (
+          <IconButton icon="search" onPress={openSearch} accessibilityLabel="search (⌘F)" />
+        )}
+        <IconButton icon="folder" onPress={() => vault.reveal()} accessibilityLabel="open folder in finder" />
+        <IconButton icon="sparkle" label="agent" onPress={openAgent} wide accessibilityLabel="open an agent in the posts folder" />
         <IconButton
-          label="profile"
+          icon="person"
           onPress={() => setShowProfile((v) => !v)}
-          wide
           accessibilityLabel="your creator profile (instructions.md)"
         />
         <IconButton
