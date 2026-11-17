@@ -38,6 +38,8 @@ for next week" is a one-line prompt, not a briefing.
 - **one network per post** — instagram, linkedin, youtube or tiktok — with the
   formats each one actually publishes
 - **markdown captions, rendered**, with a **script** next to them for video formats
+- **a full-screen reader** for the open post, with the script rendered large and the
+  caption beside it — `⌘↩`
 - **copy as plain text** for a teleprompter or the network's caption field
 - **reference links** on each post, and **quick links** to your tools in the toolbar
 - **onboarding → `instructions.md`**, plus `AGENTS.md` / `CLAUDE.md`, so any agent
@@ -214,6 +216,7 @@ the questions is required.
 | `⌘←` `⌘→` | previous / next month |
 | `⌘F` | search — opens the box; it stays open while there is a query |
 | `⌘L` | switch calendar / list |
+| `⌘↩` | read the open post full screen, script first |
 | `⌘1` | toggle filters |
 | `⌘/` | this shortcuts guide |
 | `⌘⌫` | move post to trash |

@@ -53,3 +53,6 @@ export function installWebStyles() {
 
 export const DRAG = { drag: 'true' } as const;
 export const NO_DRAG = { nodrag: 'true' } as const;
+
+/** Width reserved so the traffic lights never overlap toolbar content. */
+export const TRAFFIC_LIGHTS = 78;

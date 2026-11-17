@@ -37,7 +37,7 @@ const COPIED_MS = 1500;
  * Copies the caption as the preview reads it — plain text, no markup — for
  * pasting into a teleprompter or the caption field of whatever network.
  */
-function CopyCaptionButton({ body, what }: { body: string; what: string }) {
+export function CopyCaptionButton({ body, what }: { body: string; what: string }) {
   const t = useTheme();
   const [hover, setHover] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -247,6 +247,7 @@ export function EditorPanel({
   onDelete,
   onClose,
   onReveal,
+  onExpand,
   registerSave,
 }: {
   post: Post;
@@ -254,6 +255,8 @@ export function EditorPanel({
   onDelete: () => void;
   onClose: () => void;
   onReveal: () => void;
+  /** Opens the full-screen reader on this post. */
+  onExpand: () => void;
   /** Lets the parent trigger a save from the Cmd+S menu accelerator. */
   registerSave: (fn: () => void) => void;
 }) {
@@ -405,6 +408,15 @@ export function EditorPanel({
         >
           {statusText}
         </Text>
+        <IconButton
+          icon="expand"
+          onPress={() => {
+            // The reader shows what is on disk: push a pending edit first.
+            if (timer.current) flush();
+            onExpand();
+          }}
+          accessibilityLabel="read full screen (⌘↩)"
+        />
         <IconButton label="⋯" onPress={onReveal} accessibilityLabel="reveal in finder" />
       </View>
 

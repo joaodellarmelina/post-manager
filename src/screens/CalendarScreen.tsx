@@ -16,10 +16,8 @@ import { addMonths, monthLabel, todayISO } from '../dates';
 import { usePosts } from '../hooks/usePosts';
 import { useQuickLinks } from '../hooks/useQuickLinks';
 import { font, useTheme } from '../theme';
-import { DRAG, NO_DRAG } from '../webStyles';
-
-/** Width reserved so the traffic lights never overlap toolbar content. */
-const TRAFFIC_LIGHTS = 78;
+import { DRAG, NO_DRAG, TRAFFIC_LIGHTS } from '../webStyles';
+import { PostScreen } from './PostScreen';
 
 const REPO_URL = 'https://github.com/joaodellarmelina/post-manager';
 
@@ -81,6 +79,8 @@ export function CalendarScreen() {
   const [onboarding, setOnboarding] = useState<Answers | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showAgent, setShowAgent] = useState(false);
+  // The open post read full screen, script first; see PostScreen.
+  const [reading, setReading] = useState(false);
   const [hasProfile, setHasProfile] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const onboardingChecked = useRef(false);
@@ -217,6 +217,8 @@ export function CalendarScreen() {
 
   const createAt = useCallback((iso: string) => {
     setSelected(null);
+    // A new post is written in the editor panel, not in the reader.
+    setReading(false);
     setDraftPost({ filename: '', error: null, ...emptyDraft(iso) });
     setEditorSession((n) => n + 1);
   }, []);
@@ -261,13 +263,18 @@ export function CalendarScreen() {
       setShowShortcuts(false);
       return true;
     }
+    if (reading) {
+      // Back to the calendar with the editor panel still open on the post.
+      setReading(false);
+      return true;
+    }
     if (draftPost || selected) {
       setDraftPost(null);
       setSelected(null);
       return true;
     }
     return false;
-  }, [onboarding, closeOnboarding, showAgent, showProfile, showLinks, showShortcuts, draftPost, selected]);
+  }, [onboarding, closeOnboarding, showAgent, showProfile, showLinks, showShortcuts, reading, draftPost, selected]);
 
   const goToday = useCallback(() => {
     const d = new Date();
@@ -334,10 +341,14 @@ export function CalendarScreen() {
         case 'agent':
           openAgent();
           break;
+        case 'focus-post':
+          // Nothing open, nothing to read.
+          setReading((v) => !v && !!(draftPost ?? selected));
+          break;
       }
     });
   }, [
-    createAt, closePanel, handleDelete, goToday, shiftMonth, selected, view, changeView, editLinks,
+    createAt, closePanel, handleDelete, goToday, shiftMonth, selected, draftPost, view, changeView, editLinks,
     openOnboarding, openAgent, openSearch,
   ]);
 
@@ -352,37 +363,63 @@ export function CalendarScreen() {
   }, [closePanel]);
 
   const openEditor = draftPost ?? selected;
+  // The post can vanish from disk while it is being read.
+  const readingPost = reading ? openEditor : null;
+  useEffect(() => {
+    if (reading && !readingPost) setReading(false);
+  }, [reading, readingPost]);
 
   return (
     <View style={{ flex: 1, backgroundColor: t.panel }}>
-      <View
-        dataSet={DRAG}
-        style={{
-          height: 52,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 8,
-          paddingLeft: TRAFFIC_LIGHTS,
-          paddingRight: 12,
-          borderBottomWidth: 1,
-          borderColor: t.separator,
-        }}
-      >
-        <IconButton label="☰" onPress={() => setShowSidebar((v) => !v)} accessibilityLabel="toggle filters" />
+      {readingPost ? <PostScreen post={readingPost} onClose={() => setReading(false)} /> : null}
 
-        <View dataSet={NO_DRAG} style={{ width: 76 }}>
-          <Segmented<ViewMode>
-            options={VIEWS}
-            value={view}
-            onChange={changeView}
-            labels={VIEW_LABELS}
-            icons={VIEW_ICONS}
-          />
-        </View>
+      {/* Hidden rather than unmounted while reading, so the editor keeps its draft. */}
+      <View style={{ flex: 1, display: readingPost ? 'none' : 'flex' }}>
+        <View
+          dataSet={DRAG}
+          style={{
+            height: 52,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            paddingLeft: TRAFFIC_LIGHTS,
+            paddingRight: 12,
+            borderBottomWidth: 1,
+            borderColor: t.separator,
+          }}
+        >
+          <IconButton label="☰" onPress={() => setShowSidebar((v) => !v)} accessibilityLabel="toggle filters" />
 
-        {view === 'calendar' ? (
-          <>
-            <IconButton label="‹" onPress={() => shiftMonth(-1)} accessibilityLabel="previous month" />
+          <View dataSet={NO_DRAG} style={{ width: 76 }}>
+            <Segmented<ViewMode>
+              options={VIEWS}
+              value={view}
+              onChange={changeView}
+              labels={VIEW_LABELS}
+              icons={VIEW_ICONS}
+            />
+          </View>
+
+          {view === 'calendar' ? (
+            <>
+              <IconButton label="‹" onPress={() => shiftMonth(-1)} accessibilityLabel="previous month" />
+              <Text
+                style={{
+                  fontFamily: font.ui,
+                  fontSize: 14,
+                  fontWeight: '600',
+                  letterSpacing: -0.2,
+                  color: t.text,
+                  minWidth: 132,
+                  textAlign: 'center',
+                }}
+              >
+                {monthLabel(year, month)}
+              </Text>
+              <IconButton label="›" onPress={() => shiftMonth(1)} accessibilityLabel="next month" />
+              <IconButton label="today" onPress={goToday} wide />
+            </>
+          ) : (
             <Text
               style={{
                 fontFamily: font.ui,
@@ -390,139 +427,124 @@ export function CalendarScreen() {
                 fontWeight: '600',
                 letterSpacing: -0.2,
                 color: t.text,
-                minWidth: 132,
-                textAlign: 'center',
+                marginLeft: 4,
               }}
             >
-              {monthLabel(year, month)}
-            </Text>
-            <IconButton label="›" onPress={() => shiftMonth(1)} accessibilityLabel="next month" />
-            <IconButton label="today" onPress={goToday} wide />
-          </>
-        ) : (
-          <Text
-            style={{
-              fontFamily: font.ui,
-              fontSize: 14,
-              fontWeight: '600',
-              letterSpacing: -0.2,
-              color: t.text,
-              marginLeft: 4,
-            }}
-          >
-            all posts
-            <Text style={{ fontSize: 12, fontWeight: '400', color: t.textTertiary }}>
-              {'  '}
-              {filtered.length}
-            </Text>
-          </Text>
-        )}
-
-        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', minWidth: 0, paddingHorizontal: 12 }}>
-          <QuickLinks links={quickLinks} onEdit={editLinks} />
-        </View>
-
-        {searchOpen ? (
-          <View dataSet={NO_DRAG} style={{ width: 190 }}>
-            <Field
-              inputRef={searchRef}
-              value={query}
-              onChangeText={setQuery}
-              placeholder="search"
-              autoFocus
-              onBlur={closeSearchIfEmpty}
-              onKeyPress={(e: any) => {
-                if (e.nativeEvent?.key === 'Escape') {
-                  if (query.trim()) searchRef.current?.blur();
-                  else closeSearchIfEmpty();
-                }
-              }}
-            />
-          </View>
-        ) : (
-          <IconButton icon="search" onPress={openSearch} accessibilityLabel="search (⌘F)" />
-        )}
-        <IconButton icon="folder" onPress={() => vault.reveal()} accessibilityLabel="open folder in finder" />
-        <IconButton icon="sparkle" label="agent" onPress={openAgent} wide accessibilityLabel="open an agent in the posts folder" />
-        <IconButton
-          icon="person"
-          onPress={() => setShowProfile((v) => !v)}
-          accessibilityLabel="your creator profile (instructions.md)"
-        />
-        <IconButton
-          label="⌘"
-          onPress={() => setShowShortcuts((v) => !v)}
-          accessibilityLabel="keyboard shortcuts"
-        />
-        <PrimaryButton label="+ new" onPress={() => createAt(todayISO())} />
-        <GithubButton url={REPO_URL} />
-      </View>
-
-      {!hasBridge ? (
-        <View style={{ padding: 8, backgroundColor: 'rgba(255,159,10,0.16)' }}>
-          <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
-            running outside electron — reading and writing files is unavailable.
-          </Text>
-        </View>
-      ) : null}
-      {notice ? (
-        <View style={{ padding: 8, backgroundColor: t.accentSoft }}>
-          <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
-            {notice}
-            {/* The link only makes sense when the notice is about that file. */}
-            {/instructions\.md/.test(notice) ? (
-              <Text
-                accessibilityRole="button"
-                onPress={() => vault.openInstructions()}
-                style={{ color: t.accentStrong, textDecorationLine: 'underline' }}
-              >
-                {'  '}open instructions.md
+              all posts
+              <Text style={{ fontSize: 12, fontWeight: '400', color: t.textTertiary }}>
+                {'  '}
+                {filtered.length}
               </Text>
-            ) : null}
-          </Text>
-        </View>
-      ) : null}
-      {error ? (
-        <View style={{ padding: 8, backgroundColor: 'rgba(255,69,58,0.16)' }}>
-          <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
-            {error}
-          </Text>
-        </View>
-      ) : null}
-
-      <View style={{ flex: 1, flexDirection: 'row' }}>
-        {showSidebar ? <Sidebar posts={posts} filters={filters} onChange={setFilters} /> : null}
-
-        <View style={{ flex: 1 }}>
-          {view === 'calendar' ? (
-            <MonthGrid
-              year={year}
-              month={month}
-              posts={filtered}
-              selectedFile={selected?.filename ?? null}
-              onSelectPost={openPost}
-              onCreate={createAt}
-            />
-          ) : (
-            <PostList
-              posts={filtered}
-              selectedFile={selected?.filename ?? null}
-              onSelectPost={openPost}
-            />
+            </Text>
           )}
+
+          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', minWidth: 0, paddingHorizontal: 12 }}>
+            <QuickLinks links={quickLinks} onEdit={editLinks} />
+          </View>
+
+          {searchOpen ? (
+            <View dataSet={NO_DRAG} style={{ width: 190 }}>
+              <Field
+                inputRef={searchRef}
+                value={query}
+                onChangeText={setQuery}
+                placeholder="search"
+                autoFocus
+                onBlur={closeSearchIfEmpty}
+                onKeyPress={(e: any) => {
+                  if (e.nativeEvent?.key === 'Escape') {
+                    if (query.trim()) searchRef.current?.blur();
+                    else closeSearchIfEmpty();
+                  }
+                }}
+              />
+            </View>
+          ) : (
+            <IconButton icon="search" onPress={openSearch} accessibilityLabel="search (⌘F)" />
+          )}
+          <IconButton icon="folder" onPress={() => vault.reveal()} accessibilityLabel="open folder in finder" />
+          <IconButton icon="sparkle" label="agent" onPress={openAgent} wide accessibilityLabel="open an agent in the posts folder" />
+          <IconButton
+            icon="person"
+            onPress={() => setShowProfile((v) => !v)}
+            accessibilityLabel="your creator profile (instructions.md)"
+          />
+          <IconButton
+            label="⌘"
+            onPress={() => setShowShortcuts((v) => !v)}
+            accessibilityLabel="keyboard shortcuts"
+          />
+          <PrimaryButton label="+ new" onPress={() => createAt(todayISO())} />
+          <GithubButton url={REPO_URL} />
         </View>
 
-        {openEditor ? (
-          <EditorPanel
-            key={editorSession}
-            post={openEditor}
-            onSave={handleSave}
-            onDelete={handleDelete}
-            onClose={closePanel}
-            onReveal={() => vault.reveal(openEditor.filename || undefined)}
-            registerSave={registerSave}
-          />
+        {!hasBridge ? (
+          <View style={{ padding: 8, backgroundColor: 'rgba(255,159,10,0.16)' }}>
+            <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
+              running outside electron — reading and writing files is unavailable.
+            </Text>
+          </View>
         ) : null}
+        {notice ? (
+          <View style={{ padding: 8, backgroundColor: t.accentSoft }}>
+            <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
+              {notice}
+              {/* The link only makes sense when the notice is about that file. */}
+              {/instructions\.md/.test(notice) ? (
+                <Text
+                  accessibilityRole="button"
+                  onPress={() => vault.openInstructions()}
+                  style={{ color: t.accentStrong, textDecorationLine: 'underline' }}
+                >
+                  {'  '}open instructions.md
+                </Text>
+              ) : null}
+            </Text>
+          </View>
+        ) : null}
+        {error ? (
+          <View style={{ padding: 8, backgroundColor: 'rgba(255,69,58,0.16)' }}>
+            <Text style={{ fontFamily: font.ui, fontSize: 11.5, color: t.text, textAlign: 'center' }}>
+              {error}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={{ flex: 1, flexDirection: 'row' }}>
+          {showSidebar ? <Sidebar posts={posts} filters={filters} onChange={setFilters} /> : null}
+
+          <View style={{ flex: 1 }}>
+            {view === 'calendar' ? (
+              <MonthGrid
+                year={year}
+                month={month}
+                posts={filtered}
+                selectedFile={selected?.filename ?? null}
+                onSelectPost={openPost}
+                onCreate={createAt}
+              />
+            ) : (
+              <PostList
+                posts={filtered}
+                selectedFile={selected?.filename ?? null}
+                onSelectPost={openPost}
+              />
+            )}
+          </View>
+
+          {openEditor ? (
+            <EditorPanel
+              key={editorSession}
+              post={openEditor}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              onClose={closePanel}
+              onReveal={() => vault.reveal(openEditor.filename || undefined)}
+              onExpand={() => setReading(true)}
+              registerSave={registerSave}
+            />
+          ) : null}
+        </View>
       </View>
 
       {showShortcuts ? <ShortcutsSheet onClose={() => setShowShortcuts(false)} /> : null}

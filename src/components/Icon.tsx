@@ -6,7 +6,7 @@ import React from 'react';
  * on a 24-unit grid — close to SF Symbols in weight so they sit next to the
  * system font without shouting.
  */
-export type IconName = 'calendar' | 'list' | 'search' | 'folder' | 'person' | 'sparkle';
+export type IconName = 'calendar' | 'list' | 'search' | 'folder' | 'person' | 'sparkle' | 'expand';
 
 const PATHS: Record<IconName, string> = {
   // month grid: rounded frame, header line, two rows of day dots as short dashes
@@ -19,6 +19,8 @@ const PATHS: Record<IconName, string> = {
     'M3.5 7.5A1.5 1.5 0 0 1 5 6h4.2a1.5 1.5 0 0 1 1.06.44L11.5 7.7a1 1 0 0 0 .7.3H19a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5v-10Z',
   person: 'M12 4.5a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5Z M4.75 20c.6-3.6 3.6-5.75 7.25-5.75S18.65 16.4 19.25 20',
   // four-point star
+  // two arrows pulling to opposite corners
+  expand: 'M14 4.5h5.5V10 M19.5 4.5l-6 6 M10 19.5H4.5V14 M4.5 19.5l6-6',
   sparkle: 'M12 3.5c.6 4.4 2.6 6.9 8.5 8.5-5.9 1.6-7.9 4.1-8.5 8.5-.6-4.4-2.6-6.9-8.5-8.5 5.9-1.6 7.9-4.1 8.5-8.5Z',
 };
 

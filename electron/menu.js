@@ -75,6 +75,7 @@ function buildMenu(getWindow, vaultDir) {
         { label: 'Next Month', accelerator: 'CmdOrCtrl+Right', click: send('next-month') },
         { type: 'separator' },
         { label: 'Switch Calendar / List', accelerator: 'CmdOrCtrl+L', click: send('toggle-view') },
+        { label: 'Read Post Full Screen', accelerator: 'CmdOrCtrl+Return', click: send('focus-post') },
         { label: 'Show Filters', accelerator: 'CmdOrCtrl+1', click: send('toggle-sidebar') },
         { label: 'Keyboard Shortcuts', accelerator: 'CmdOrCtrl+/', click: send('shortcuts') },
         { type: 'separator' },

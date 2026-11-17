@@ -34,6 +34,7 @@ const GROUPS: { title: string; items: [string, string[]][] }[] = [
     title: 'view',
     items: [
       ['switch calendar / list', ['⌘', 'L']],
+      ['read the open post full screen', ['⌘', '↩']],
       ['toggle filters', ['⌘', '1']],
       ['this guide', ['⌘', '/']],
       ['close the editor panel', ['esc']],

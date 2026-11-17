@@ -102,6 +102,13 @@ await sleep(200);
 await scrollPanel();
 await shot('editor');
 
+// The same post read full screen, script in front.
+await clickLabel('read full screen (⌘↩)');
+await sleep(400);
+await shot('reader');
+await escape();
+await sleep(300);
+
 await escape();
 await sleep(300);
 

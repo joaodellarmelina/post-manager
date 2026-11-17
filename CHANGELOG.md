@@ -5,6 +5,17 @@ all notable changes to post manager. the format follows
 [semver](https://semver.org/). each release ships two dmgs — `arm64` for apple
 silicon, `x64` for intel — on the [releases page](https://github.com/joaodellarmelina/post-manager/releases).
 
+## [unreleased]
+
+### added
+
+- **read a post full screen.** the new `⤢` button in the editor panel (or `⌘↩`)
+  opens the post on its own screen with the script rendered large in the
+  middle — word count and an estimate of how long it takes to read aloud on
+  top, `A−` / `A+` for the text size — and the caption, tags and reference
+  links in a quiet column on the right. switch which of the two texts is in
+  front, copy either as plain text, `esc` to go back to the editor.
+
 ## [1.6.0] — 2026-09-15
 
 ### changed

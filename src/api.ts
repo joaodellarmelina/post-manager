@@ -68,7 +68,7 @@ export interface QuickLink {
 type MenuAction =
   | 'new' | 'save' | 'close-panel' | 'today' | 'delete'
   | 'search' | 'prev-month' | 'next-month' | 'toggle-sidebar' | 'shortcuts' | 'toggle-view'
-  | 'edit-links' | 'onboarding' | 'profile' | 'agent';
+  | 'edit-links' | 'onboarding' | 'profile' | 'agent' | 'focus-post';
 
 interface VaultBridge {
   list(): Promise<Post[]>;

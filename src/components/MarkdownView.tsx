@@ -19,7 +19,7 @@ function inlineKey(i: number) {
 }
 
 /** Inline tokens render as nested <Text>, which RN composes into one line flow. */
-function renderInline(tokens: Token[] | undefined, t: Theme, raw?: string): React.ReactNode {
+function renderInline(tokens: Token[] | undefined, t: Theme, raw?: string, s = 1): React.ReactNode {
   if (!tokens || tokens.length === 0) return raw ?? null;
 
   return tokens.map((tk, i) => {
@@ -27,19 +27,19 @@ function renderInline(tokens: Token[] | undefined, t: Theme, raw?: string): Reac
       case 'strong':
         return (
           <Text key={inlineKey(i)} style={{ fontWeight: '600' }}>
-            {renderInline((tk as Tokens.Strong).tokens, t, (tk as Tokens.Strong).text)}
+            {renderInline((tk as Tokens.Strong).tokens, t, (tk as Tokens.Strong).text, s)}
           </Text>
         );
       case 'em':
         return (
           <Text key={inlineKey(i)} style={{ fontStyle: 'italic' }}>
-            {renderInline((tk as Tokens.Em).tokens, t, (tk as Tokens.Em).text)}
+            {renderInline((tk as Tokens.Em).tokens, t, (tk as Tokens.Em).text, s)}
           </Text>
         );
       case 'del':
         return (
           <Text key={inlineKey(i)} style={{ textDecorationLine: 'line-through' }}>
-            {renderInline((tk as Tokens.Del).tokens, t, (tk as Tokens.Del).text)}
+            {renderInline((tk as Tokens.Del).tokens, t, (tk as Tokens.Del).text, s)}
           </Text>
         );
       case 'codespan':
@@ -48,7 +48,7 @@ function renderInline(tokens: Token[] | undefined, t: Theme, raw?: string): Reac
             key={inlineKey(i)}
             style={{
               fontFamily: font.mono,
-              fontSize: 12,
+              fontSize: 12 * s,
               backgroundColor: t.field,
               color: t.accentStrong,
             }}
@@ -67,7 +67,7 @@ function renderInline(tokens: Token[] | undefined, t: Theme, raw?: string): Reac
               if (/^https?:/i.test(link.href)) Linking.openURL(link.href).catch(() => {});
             }}
           >
-            {renderInline(link.tokens, t, link.text)}
+            {renderInline(link.tokens, t, link.text, s)}
           </Text>
         );
       }
@@ -82,7 +82,7 @@ function renderInline(tokens: Token[] | undefined, t: Theme, raw?: string): Reac
         return (
           <Text key={inlineKey(i)}>
             {(tk as Tokens.Text).tokens
-              ? renderInline((tk as Tokens.Text).tokens, t, (tk as Tokens.Text).text)
+              ? renderInline((tk as Tokens.Text).tokens, t, (tk as Tokens.Text).text, s)
               : // A newline inside a paragraph is a soft break in markdown: it
                 // renders as a space, not as a line break (that is what `br` is for).
                 ((tk as Tokens.Text).text ?? tk.raw).replace(/\n/g, ' ')}
@@ -92,15 +92,15 @@ function renderInline(tokens: Token[] | undefined, t: Theme, raw?: string): Reac
   });
 }
 
-function Paragraph({ children, t }: { children: React.ReactNode; t: Theme }) {
+function Paragraph({ children, t, s }: { children: React.ReactNode; t: Theme; s: number }) {
   return (
-    <Text style={{ fontFamily: font.ui, fontSize: 13, lineHeight: 20, color: t.text }}>
+    <Text style={{ fontFamily: font.ui, fontSize: 13 * s, lineHeight: 20 * s, color: t.text }}>
       {children}
     </Text>
   );
 }
 
-function renderBlocks(tokens: Token[], t: Theme, depth = 0): React.ReactNode[] {
+function renderBlocks(tokens: Token[], t: Theme, depth = 0, s = 1): React.ReactNode[] {
   const out: React.ReactNode[] = [];
 
   tokens.forEach((tk, i) => {
@@ -116,14 +116,14 @@ function renderBlocks(tokens: Token[], t: Theme, depth = 0): React.ReactNode[] {
             key={key}
             style={{
               fontFamily: font.ui,
-              fontSize: HEADING_SIZE[Math.min(h.depth, 6) - 1],
+              fontSize: HEADING_SIZE[Math.min(h.depth, 6) - 1] * s,
               fontWeight: '600',
-              letterSpacing: -0.2,
+              letterSpacing: -0.2 * s,
               color: t.text,
-              marginTop: i === 0 ? 0 : 6,
+              marginTop: i === 0 ? 0 : 6 * s,
             }}
           >
-            {renderInline(h.tokens, t, h.text)}
+            {renderInline(h.tokens, t, h.text, s)}
           </Text>,
         );
         break;
@@ -131,8 +131,8 @@ function renderBlocks(tokens: Token[], t: Theme, depth = 0): React.ReactNode[] {
 
       case 'paragraph':
         out.push(
-          <Paragraph key={key} t={t}>
-            {renderInline((tk as Tokens.Paragraph).tokens, t, (tk as Tokens.Paragraph).text)}
+          <Paragraph key={key} t={t} s={s}>
+            {renderInline((tk as Tokens.Paragraph).tokens, t, (tk as Tokens.Paragraph).text, s)}
           </Paragraph>,
         );
         break;
@@ -140,28 +140,28 @@ function renderBlocks(tokens: Token[], t: Theme, depth = 0): React.ReactNode[] {
       case 'list': {
         const list = tk as Tokens.List;
         out.push(
-          <View key={key} style={{ gap: 3 }}>
+          <View key={key} style={{ gap: 3 * s }}>
             {list.items.map((item, n) => (
-              <View key={n} style={{ flexDirection: 'row', gap: 7 }}>
+              <View key={n} style={{ flexDirection: 'row', gap: 7 * s }}>
                 <Text
                   style={{
                     fontFamily: font.ui,
-                    fontSize: 13,
-                    lineHeight: 20,
+                    fontSize: 13 * s,
+                    lineHeight: 20 * s,
                     color: t.textSecondary,
-                    minWidth: list.ordered ? 16 : 8,
+                    minWidth: (list.ordered ? 16 : 8) * s,
                   }}
                 >
                   {list.ordered ? `${(Number(list.start) || 1) + n}.` : '•'}
                 </Text>
-                <View style={{ flex: 1, gap: 3 }}>
+                <View style={{ flex: 1, gap: 3 * s }}>
                   {item.task ? (
-                    <Text style={{ fontFamily: font.ui, fontSize: 13, color: t.textSecondary }}>
+                    <Text style={{ fontFamily: font.ui, fontSize: 13 * s, lineHeight: 20 * s, color: t.textSecondary }}>
                       {item.checked ? '☑' : '☐'}{' '}
-                      <Text style={{ color: t.text }}>{renderInline(item.tokens, t, item.text)}</Text>
+                      <Text style={{ color: t.text }}>{renderInline(item.tokens, t, item.text, s)}</Text>
                     </Text>
                   ) : (
-                    renderBlocks(item.tokens as Token[], t, depth + 1)
+                    renderBlocks(item.tokens as Token[], t, depth + 1, s)
                   )}
                 </View>
               </View>
@@ -178,11 +178,11 @@ function renderBlocks(tokens: Token[], t: Theme, depth = 0): React.ReactNode[] {
             style={{
               borderLeftWidth: 2,
               borderColor: t.border,
-              paddingLeft: 9,
-              gap: 6,
+              paddingLeft: 9 * s,
+              gap: 6 * s,
             }}
           >
-            {renderBlocks((tk as Tokens.Blockquote).tokens, t, depth + 1)}
+            {renderBlocks((tk as Tokens.Blockquote).tokens, t, depth + 1, s)}
           </View>,
         );
         break;
@@ -193,7 +193,7 @@ function renderBlocks(tokens: Token[], t: Theme, depth = 0): React.ReactNode[] {
             key={key}
             style={{ backgroundColor: t.field, borderRadius: radius.sm, padding: 9 }}
           >
-            <Text style={{ fontFamily: font.mono, fontSize: 12, lineHeight: 18, color: t.text }}>
+            <Text style={{ fontFamily: font.mono, fontSize: 12 * s, lineHeight: 18 * s, color: t.text }}>
               {(tk as Tokens.Code).text}
             </Text>
           </View>,
@@ -208,7 +208,7 @@ function renderBlocks(tokens: Token[], t: Theme, depth = 0): React.ReactNode[] {
         out.push(
           <Text
             key={key}
-            style={{ fontFamily: font.mono, fontSize: 12, color: t.textSecondary }}
+            style={{ fontFamily: font.mono, fontSize: 12 * s, color: t.textSecondary }}
           >
             {(tk as Tokens.HTML).raw.trim()}
           </Text>,
@@ -219,8 +219,8 @@ function renderBlocks(tokens: Token[], t: Theme, depth = 0): React.ReactNode[] {
         const any = tk as Tokens.Text;
         if (any.tokens || any.text) {
           out.push(
-            <Paragraph key={key} t={t}>
-              {renderInline(any.tokens, t, any.text)}
+            <Paragraph key={key} t={t} s={s}>
+              {renderInline(any.tokens, t, any.text, s)}
             </Paragraph>,
           );
         }
@@ -231,32 +231,33 @@ function renderBlocks(tokens: Token[], t: Theme, depth = 0): React.ReactNode[] {
   return out;
 }
 
-export function MarkdownView({ source }: { source: string }) {
+/** `scale` enlarges every size together — the full-screen reader uses it. */
+export function MarkdownView({ source, scale = 1 }: { source: string; scale?: number }) {
   const t = useTheme();
 
   const blocks = React.useMemo(() => {
     if (!source.trim()) return null;
     try {
-      return renderBlocks(marked.lexer(source), t);
+      return renderBlocks(marked.lexer(source), t, 0, scale);
     } catch {
       // A body that trips the lexer still has to be readable.
       return [
-        <Paragraph key="raw" t={t}>
+        <Paragraph key="raw" t={t} s={scale}>
           {source}
         </Paragraph>,
       ];
     }
-  }, [source, t]);
+  }, [source, t, scale]);
 
   if (!blocks) {
     return (
-      <Text style={{ fontFamily: font.ui, fontSize: 13, color: t.textTertiary }}>
+      <Text style={{ fontFamily: font.ui, fontSize: 13 * scale, color: t.textTertiary }}>
         nothing to preview yet
       </Text>
     );
   }
 
-  return <View style={{ gap: 8 }}>{blocks}</View>;
+  return <View style={{ gap: 8 * scale }}>{blocks}</View>;
 }
 
 /** Inline tokens flattened to the text the preview shows, markup dropped. */
