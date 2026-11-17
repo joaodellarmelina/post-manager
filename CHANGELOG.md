@@ -5,7 +5,7 @@ all notable changes to post manager. the format follows
 [semver](https://semver.org/). each release ships two dmgs — `arm64` for apple
 silicon, `x64` for intel — on the [releases page](https://github.com/joaodellarmelina/post-manager/releases).
 
-## [unreleased]
+## [1.7.0] — 2026-11-17
 
 ### added
 
@@ -163,6 +163,7 @@ status, type, tags and caption. the folder is watched, so edits from any other
 app show up instantly. superseded by 1.1.0 — the packaged app at this tag would
 not open on macOS; the source is fine.
 
+[1.7.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/joaodellarmelina/post-manager/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/joaodellarmelina/post-manager/compare/v1.4.0...v1.5.0
