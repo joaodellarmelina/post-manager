@@ -134,6 +134,19 @@ to open it in your browser.
   <img src="docs/calendar-dark.png" width="800" alt="dark mode">
 </p>
 
+## read the script full screen
+
+<p align="center">
+  <img src="docs/reader.png" width="800" alt="a post read full screen, script in front">
+</p>
+
+the editor panel is for writing; rereading a script before you record wants
+more room. press `⤢` in the panel (or `⌘↩`) and the post takes the whole window:
+the **script rendered large** in the middle, with its word count and roughly how
+long it takes to read aloud, and the caption, tags and reference links beside it.
+`A−` / `A+` change the text size, the switch on top puts the caption in front
+instead, and `esc` takes you back to the editor.
+
 ## quick links to your tools
 
 the toolbar carries shortcuts to whatever sits around your writing — figma,
